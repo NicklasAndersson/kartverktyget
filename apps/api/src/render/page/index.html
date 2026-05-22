@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="utf-8" />
+    <title>kvg render page</title>
+    <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.css" />
+    <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+    <script src="https://unpkg.com/maplibre-contour@0.1.0/dist/index.min.js"></script>
+    <script src="https://unpkg.com/pmtiles@4.1.0/dist/pmtiles.js"></script>
+    <style>
+      html, body, #map { margin: 0; padding: 0; width: 100%; height: 100%; background: #fff; }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script>
+      const protocol = new pmtiles.Protocol();
+      maplibregl.addProtocol('pmtiles', protocol.tile);
+      const demSource = new mlcontour.DemSource({
+        url: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
+        encoding: 'terrarium',
+        maxzoom: 13,
+        worker: true,
+      });
+      demSource.setupMaplibre(maplibregl);
+      const CONTOUR_URL = demSource.contourProtocolUrl({
+        thresholds: {
+          11: [50, 200],
+          12: [25, 100],
+          13: [10, 50],
+          14: [5, 20],
+        },
+        multiplier: 1,
+        overzoom: 1,
+      });
+
+      function addContourLayers(map) {
+        if (map.getSource('kvg-contours')) return;
+        map.addSource('kvg-contours', {
+          type: 'vector',
+          tiles: [CONTOUR_URL],
+          minzoom: 1,
+          maxzoom: 14,
+        });
+        map.addLayer({
+          id: 'kvg-contour-minor',
+          type: 'line',
+          source: 'kvg-contours',
+          'source-layer': 'contours',
+          filter: ['!=', ['get', 'level'], 1],
+          paint: {
+            'line-color': '#c47533',
+            'line-width': 0.6,
+            'line-opacity': 0.7,
+          },
+        });
+        map.addLayer({
+          id: 'kvg-contour-major',
+          type: 'line',
+          source: 'kvg-contours',
+          'source-layer': 'contours',
+          filter: ['==', ['get', 'level'], 1],
+          paint: {
+            'line-color': '#a0522d',
+            'line-width': 1.2,
+            'line-opacity': 0.9,
+          },
+        });
+      }
+
+      window.kvgRender = async function (args) {
+        const { style, bounds, widthPx, heightPx, overlays, contours } = args;
+        document.body.style.width = widthPx + 'px';
+        document.body.style.height = heightPx + 'px';
+        const el = document.getElementById('map');
+        el.style.width = widthPx + 'px';
+        el.style.height = heightPx + 'px';
+
+        const map = new maplibregl.Map({
+          container: 'map',
+          style: style,           // inline style JSON-objekt med absoluta tile-URLs
+          attributionControl: false,
+          fadeDuration: 0,
+          preserveDrawingBuffer: true,
+        });
+        await new Promise((res) => map.once('load', res));
+
+        if (contours) {
+          addContourLayers(map);
+        }
+
+        // Overlays.
+        if (overlays?.tracks?.features?.length) {
+          map.addSource('kvg-tracks', { type: 'geojson', data: overlays.tracks });
+          map.addLayer({
+            id: 'kvg-tracks-line',
+            type: 'line',
+            source: 'kvg-tracks',
+            paint: { 'line-color': '#c0392b', 'line-width': 2.2 },
+          });
+        }
+        if (overlays?.waypoints?.features?.length) {
+          map.addSource('kvg-waypoints', { type: 'geojson', data: overlays.waypoints });
+          map.addLayer({
+            id: 'kvg-waypoints-circle',
+            type: 'circle',
+            source: 'kvg-waypoints',
+            paint: {
+              'circle-radius': 4,
+              'circle-color': '#c0392b',
+              'circle-stroke-color': '#fff',
+              'circle-stroke-width': 1.5,
+            },
+          });
+        }
+
+        map.fitBounds(
+          [
+            [bounds.west, bounds.south],
+            [bounds.east, bounds.north],
+          ],
+          { animate: false, padding: 0, duration: 0 },
+        );
+
+        // Vänta på idle (alla tiles laddade för det nya viewport:et).
+        // Använd INTE areTilesLoaded() direkt efter fitBounds – tile-requests
+        // dispatches asynkront och metoden kan returnera true för gamla tiles.
+        await Promise.race([
+          new Promise((res) => map.once('idle', res)),
+          new Promise((res) => setTimeout(res, 30000)),
+        ]);
+      };
+    </script>
+  </body>
+</html>

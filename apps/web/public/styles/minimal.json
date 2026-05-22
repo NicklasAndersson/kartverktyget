@@ -1,0 +1,121 @@
+{
+  "version": 8,
+  "name": "Minimalistisk",
+  "glyphs": "https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf",
+  "sources": {
+    "osm": {
+      "type": "vector",
+      "url": "/tiles/sweden.json"
+    }
+  },
+  "layers": [
+    { "id": "background", "type": "background", "paint": { "background-color": "#ffffff" } },
+    {
+      "id": "earth",
+      "type": "fill",
+      "source": "osm",
+      "source-layer": "earth",
+      "paint": { "fill-color": "#fafafa" }
+    },
+      {
+        "id": "landuse-wood",
+        "type": "fill",
+        "source": "osm",
+        "source-layer": "landuse",
+        "filter": ["any", ["==", ["get", "kind"], "forest"], ["==", ["get", "kind"], "wood"], ["==", ["get", "kind"], "scrub"], ["==", ["get", "kind"], "nature_reserve"]],
+        "paint": { "fill-color": "#eeeeee" }
+      },
+      {
+        "id": "landuse-open",
+        "type": "fill",
+        "source": "osm",
+        "source-layer": "landuse",
+        "filter": ["any", ["==", ["get", "kind"], "meadow"], ["==", ["get", "kind"], "grass"], ["==", ["get", "kind"], "grassland"], ["==", ["get", "kind"], "farmland"], ["==", ["get", "kind"], "garden"], ["==", ["get", "kind"], "allotments"], ["==", ["get", "kind"], "golf_course"], ["==", ["get", "kind"], "recreation_ground"], ["==", ["get", "kind"], "pitch"], ["==", ["get", "kind"], "playground"], ["==", ["get", "kind"], "wetland"]],
+        "paint": { "fill-color": "#f4f4f4" }
+      },
+    {
+      "id": "water",
+      "type": "fill",
+      "source": "osm",
+      "source-layer": "water",
+      "paint": { "fill-color": "#daeaf4" }
+    },
+    {
+      "id": "buildings",
+      "type": "fill",
+      "source": "osm",
+      "source-layer": "buildings",
+      "minzoom": 13,
+      "paint": { "fill-color": "#d0d0d0", "fill-outline-color": "#aaa" }
+    },
+    {
+      "id": "roads-minor",
+      "type": "line",
+      "source": "osm",
+      "source-layer": "roads",
+      "filter": ["any",
+        ["==", ["get", "kind"], "minor_road"],
+        ["==", ["get", "kind"], "medium_road"],
+        ["==", ["get", "kind"], "path"],
+        ["==", ["get", "kind"], "track"]
+      ],
+      "paint": { "line-color": "#bbb", "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.4, 16, 1.5] }
+    },
+    {
+      "id": "roads-major",
+      "type": "line",
+      "source": "osm",
+      "source-layer": "roads",
+      "filter": ["any", ["==", ["get", "kind"], "major_road"], ["==", ["get", "kind"], "highway"]],
+      "paint": { "line-color": "#888", "line-width": ["interpolate", ["linear"], ["zoom"], 8, 0.6, 16, 3] }
+    },
+    {
+      "id": "road-labels-major",
+      "type": "symbol",
+      "source": "osm",
+      "source-layer": "roads",
+      "minzoom": 11,
+      "filter": ["any", ["==", ["get", "kind"], "major_road"], ["==", ["get", "kind"], "highway"]],
+      "layout": {
+        "symbol-placement": "line",
+        "text-field": ["coalesce", ["get", "name:sv"], ["get", "name"]],
+        "text-font": ["Noto Sans Medium"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 11, 11.5, 16, 13.5],
+        "symbol-spacing": 350,
+        "text-keep-upright": true,
+        "text-max-angle": 35
+      },
+      "paint": { "text-color": "#555", "text-halo-color": "#fff", "text-halo-width": 1.5 }
+    },
+    {
+      "id": "road-labels-minor",
+      "type": "symbol",
+      "source": "osm",
+      "source-layer": "roads",
+      "minzoom": 13,
+      "filter": ["any", ["==", ["get", "kind"], "medium_road"], ["==", ["get", "kind"], "minor_road"]],
+      "layout": {
+        "symbol-placement": "line",
+        "text-field": ["coalesce", ["get", "name:sv"], ["get", "name"]],
+        "text-font": ["Noto Sans Regular"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 13, 10.5, 16, 12],
+        "symbol-spacing": 300,
+        "text-keep-upright": true,
+        "text-max-angle": 35
+      },
+      "paint": { "text-color": "#666", "text-halo-color": "#fff", "text-halo-width": 1.25 }
+    },
+    {
+      "id": "place-labels",
+      "type": "symbol",
+      "source": "osm",
+      "source-layer": "places",
+      "layout": {
+        "text-field": ["coalesce", ["get", "name:sv"], ["get", "name"]],
+        "text-font": ["Noto Sans Regular"],
+        "text-size": ["interpolate", ["linear"], ["zoom"], 6, 11.5, 14, 14.5]
+      },
+      "paint": { "text-color": "#444", "text-halo-color": "#fff", "text-halo-width": 1 }
+    }
+  ]
+}

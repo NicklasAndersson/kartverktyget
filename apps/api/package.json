@@ -1,0 +1,29 @@
+{
+  "name": "@kvg/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fastify/cors": "^10.0.1",
+    "@fastify/static": "^8.0.3",
+    "@kvg/shared": "workspace:*",
+    "fastify": "^5.1.0",
+    "mgrs": "^2.1.0",
+    "pdf-lib": "^1.17.1",
+    "playwright": "^1.49.0",
+    "pmtiles": "^4.1.0",
+    "proj4": "^2.12.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "@types/proj4": "^2.5.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

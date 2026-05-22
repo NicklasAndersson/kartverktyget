@@ -1,0 +1,33 @@
+{
+  "name": "@kvg/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc -b --noEmit"
+  },
+  "dependencies": {
+    "@kvg/shared": "workspace:*",
+    "@tmcw/togeojson": "^7.0.0",
+    "@types/geojson": "^7946.0.14",
+    "maplibre-contour": "^0.1.0",
+    "maplibre-gl": "^4.7.1",
+    "mgrs": "^2.1.0",
+    "pmtiles": "^4.1.0",
+    "proj4": "^2.12.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "zustand": "^5.0.1"
+  },
+  "devDependencies": {
+    "@types/proj4": "^2.5.5",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
+  }
+}

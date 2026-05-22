@@ -1,0 +1,19 @@
+node_modules/
+dist/
+build/
+.DS_Store
+*.log
+
+# Lokala data – ej i git, byggs av scripts/
+data/*.pmtiles
+data/raw/
+
+# IDE
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Misc
+.env
+.env.local
+*.tsbuildinfo
