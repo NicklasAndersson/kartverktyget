@@ -171,8 +171,9 @@ export async function registerPmtilesProxy(app: FastifyInstance, entries: Map<st
     return reply.send(fs.createReadStream(file.filepath, { start, end }));
   };
 
+  // Fastify exposeHeadRoutes (default) registers en HEAD-route automatiskt
+  // för varje GET — så vi behöver inte deklarera HEAD separat.
   app.get<{ Params: { name: string } }>('/pmtiles/:name', handler);
-  app.head<{ Params: { name: string } }>('/pmtiles/:name', handler);
 }
 
 export { EtagMismatch };

@@ -33,8 +33,8 @@ COPY apps/web apps/web
 COPY packages/shared packages/shared
 
 # Bygg shared först (api+web importerar dist), sedan api (tsc) och web (vite)
-RUN pnpm --filter @kvg/shared run build \
- && pnpm --filter @kvg/api run build \
+# @kvg/shared exporterar TS-källa direkt (ingen build-step). Bygg api + web.
+RUN pnpm --filter @kvg/api run build \
  && pnpm --filter @kvg/web run build
 
 # Produktionsberoenden för runtime-imagen (api behöver dem; web är statisk)
