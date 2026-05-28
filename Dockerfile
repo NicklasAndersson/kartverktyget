@@ -38,7 +38,7 @@ RUN pnpm --filter @kvg/api run build \
  && pnpm --filter @kvg/web run build
 
 # Produktionsberoenden för runtime-imagen (api behöver dem; web är statisk)
-RUN pnpm deploy --filter @kvg/api --prod /tmp/api-deploy \
+RUN pnpm deploy --filter @kvg/api --prod /tmp/api-deploy --legacy \
  && cp -r apps/api/dist /tmp/api-deploy/dist
 
 
