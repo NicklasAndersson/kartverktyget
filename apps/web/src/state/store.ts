@@ -39,6 +39,7 @@ interface AppState {
   addTrack: (line: LineString, props?: Record<string, unknown>) => void;
   addWaypoint: (pt: Point, props?: Record<string, unknown>) => void;
   clearOverlays: () => void;
+  clearIcons: () => void;
 
   atlas: AtlasSpec;
   setAtlas: (a: AtlasSpec) => void;
@@ -130,6 +131,16 @@ export const useStore = create<AppState>()(
           },
         })),
       clearOverlays: () => set({ overlays: { tracks: emptyTracks, waypoints: emptyWaypoints } }),
+      clearIcons: () =>
+        set((s) => ({
+          overlays: {
+            ...s.overlays,
+            waypoints: {
+              type: 'FeatureCollection',
+              features: s.overlays.waypoints.features.filter((f) => !f.properties?.icon),
+            },
+          },
+        })),
 
       atlas: initialAtlas,
       setAtlas: (atlas) => {

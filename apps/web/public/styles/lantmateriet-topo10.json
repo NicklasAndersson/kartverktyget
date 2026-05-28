@@ -22,7 +22,19 @@
       "source-layer": "earth",
       "paint": {
         "fill-color": "#efe6cf",
-        "fill-antialias": false
+        "fill-antialias": true
+      }
+    },
+    {
+      "id": "earth-outline",
+      "type": "line",
+      "source": "lm",
+      "source-layer": "earth",
+      "maxzoom": 11,
+      "paint": {
+        "line-color": "#c9b88a",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.4, 8, 0.8, 10, 1.2],
+        "line-opacity": 0.7
       }
     },
     {
