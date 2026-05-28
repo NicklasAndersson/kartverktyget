@@ -1,0 +1,32 @@
+# Mediastora artefakter som inte ska in i bygg-konteksten
+data/
+.logs/
+**/node_modules/
+**/dist/
+**/.vite/
+**/.turbo/
+**/coverage/
+
+# Git/IDE
+.git/
+.github/
+.vscode/
+.idea/
+.DS_Store
+
+# Lokal konfig & hemligheter
+.env
+.env.local
+.env.*.local
+
+# Markdown/dokumentation som inte behövs i imagen
+docs/
+*.md
+README.md
+
+# Råleveranser (multi-GB)
+data/raw/
+
+# Testartefakter
+**/__snapshots__/
+**/*.log

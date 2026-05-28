@@ -7,22 +7,41 @@ interface RenderArgs {
   widthPx: number;
   heightPx: number;
   overlays: Overlays;
+  watercourses: boolean;
   contours: boolean;
 }
 
 const RENDER_TIMEOUT_MS = 45_000;
 
 let browserPromise: Promise<Browser> | null = null;
-function getBrowser() {
-  if (!browserPromise) browserPromise = chromium.launch({ args: ['--no-sandbox'] });
-  return browserPromise;
+function getBrowser(): Promise<Browser> {
+  if (browserPromise) return browserPromise;
+  const launching = chromium.launch({ args: ['--no-sandbox'] });
+  browserPromise = launching;
+  launching
+    .then((browser) => {
+      // Återställ så att nästa anrop kan re-launcha om den underliggande
+      // Chromium-processen kraschar eller stängs (manuellt eller via OOM).
+      browser.on('disconnected', () => {
+        if (browserPromise === launching) browserPromise = null;
+      });
+    })
+    .catch(() => {
+      // Cacha inte en rejected promise – nästa getBrowser() ska få chans att retry.
+      if (browserPromise === launching) browserPromise = null;
+    });
+  return launching;
 }
 
 export async function shutdownBrowser() {
-  if (browserPromise) {
-    const b = await browserPromise;
+  const current = browserPromise;
+  if (!current) return;
+  browserPromise = null;
+  try {
+    const b = await current;
     await b.close();
-    browserPromise = null;
+  } catch {
+    /* ignore – browser may already be gone */
   }
 }
 

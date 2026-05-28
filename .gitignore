@@ -7,6 +7,7 @@ build/
 # Lokala data – ej i git, byggs av scripts/
 data/*.pmtiles
 data/raw/
+data/stage/
 
 # IDE
 .vscode/*
@@ -17,3 +18,7 @@ data/raw/
 .env
 .env.local
 *.tsbuildinfo
+
+# Lokal docker-compose (behåll endast docker-compose.example.yml i git)
+docker-compose.yml
+docker-compose.override.yml

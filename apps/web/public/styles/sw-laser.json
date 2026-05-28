@@ -5,63 +5,227 @@
   "sources": {
     "osm": {
       "type": "vector",
-      "url": "/tiles/sweden.json"
+      "url": "pmtiles://https://kartverktyget.s3.eu-central-003.backblazeb2.com/sweden-osm.pmtiles"
     }
   },
   "layers": [
-    { "id": "background", "type": "background", "paint": { "background-color": "#ffffff" } },
+    {
+      "id": "background",
+      "type": "background",
+      "paint": {
+        "background-color": "#ffffff"
+      }
+    },
     {
       "id": "earth",
       "type": "fill",
       "source": "osm",
       "source-layer": "earth",
-      "paint": { "fill-color": "#ffffff" }
+      "paint": {
+        "fill-color": "#ffffff"
+      }
     },
     {
       "id": "landcover-wood",
       "type": "fill",
       "source": "osm",
       "source-layer": "landcover",
-      "filter": ["==", ["get", "kind"], "wood"],
-      "paint": { "fill-color": "#ffffff", "fill-outline-color": "#000" }
+      "filter": [
+        "==",
+        [
+          "get",
+          "kind"
+        ],
+        "wood"
+      ],
+      "paint": {
+        "fill-color": "#ffffff",
+        "fill-outline-color": "#000"
+      }
     },
     {
       "id": "landcover-wood-pattern",
       "type": "line",
       "source": "osm",
       "source-layer": "landcover",
-      "filter": ["==", ["get", "kind"], "wood"],
-      "paint": { "line-color": "#000", "line-width": 0.4, "line-opacity": 0.5 }
+      "filter": [
+        "==",
+        [
+          "get",
+          "kind"
+        ],
+        "wood"
+      ],
+      "paint": {
+        "line-color": "#000",
+        "line-width": 0.4,
+        "line-opacity": 0.5
+      }
     },
-      {
-        "id": "landuse-wood",
-        "type": "fill",
-        "source": "osm",
-        "source-layer": "landuse",
-        "filter": ["any", ["==", ["get", "kind"], "forest"], ["==", ["get", "kind"], "wood"], ["==", ["get", "kind"], "scrub"], ["==", ["get", "kind"], "nature_reserve"]],
-        "paint": { "fill-color": "#f0f0f0", "fill-outline-color": "#000" }
-      },
-      {
-        "id": "landuse-open",
-        "type": "fill",
-        "source": "osm",
-        "source-layer": "landuse",
-        "filter": ["any", ["==", ["get", "kind"], "meadow"], ["==", ["get", "kind"], "grass"], ["==", ["get", "kind"], "grassland"], ["==", ["get", "kind"], "farmland"], ["==", ["get", "kind"], "garden"], ["==", ["get", "kind"], "allotments"], ["==", ["get", "kind"], "golf_course"], ["==", ["get", "kind"], "recreation_ground"], ["==", ["get", "kind"], "pitch"], ["==", ["get", "kind"], "playground"], ["==", ["get", "kind"], "wetland"]],
-        "paint": { "fill-color": "#f7f7f7", "fill-outline-color": "#999999" }
-      },
+    {
+      "id": "landuse-wood",
+      "type": "fill",
+      "source": "osm",
+      "source-layer": "landuse",
+      "filter": [
+        "any",
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "forest"
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "wood"
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "scrub"
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "nature_reserve"
+        ]
+      ],
+      "paint": {
+        "fill-color": "#f0f0f0",
+        "fill-outline-color": "#000"
+      }
+    },
+    {
+      "id": "landuse-open",
+      "type": "fill",
+      "source": "osm",
+      "source-layer": "landuse",
+      "filter": [
+        "any",
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "meadow"
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "grass"
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "grassland"
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "farmland"
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "garden"
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "allotments"
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "golf_course"
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "recreation_ground"
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "pitch"
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "playground"
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "wetland"
+        ]
+      ],
+      "paint": {
+        "fill-color": "#f7f7f7",
+        "fill-outline-color": "#999999"
+      }
+    },
     {
       "id": "water",
       "type": "fill",
       "source": "osm",
       "source-layer": "water",
-      "paint": { "fill-color": "#ffffff" }
+      "paint": {
+        "fill-color": "#ffffff"
+      }
     },
     {
       "id": "water-outline",
       "type": "line",
       "source": "osm",
       "source-layer": "water",
-      "paint": { "line-color": "#000", "line-width": 0.7 }
+      "paint": {
+        "line-color": "#000",
+        "line-width": 0.7
+      }
     },
     {
       "id": "buildings",
@@ -69,18 +233,42 @@
       "source": "osm",
       "source-layer": "buildings",
       "minzoom": 13,
-      "paint": { "fill-color": "#000" }
+      "paint": {
+        "fill-color": "#000"
+      }
     },
     {
       "id": "roads-track",
       "type": "line",
       "source": "osm",
       "source-layer": "roads",
-      "filter": ["==", ["get", "kind"], "track"],
+      "filter": [
+        "==",
+        [
+          "get",
+          "kind"
+        ],
+        "track"
+      ],
       "paint": {
         "line-color": "#000",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.3, 16, 0.8],
-        "line-dasharray": [4, 3]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          10,
+          0.3,
+          16,
+          0.8
+        ],
+        "line-dasharray": [
+          4,
+          3
+        ]
       }
     },
     {
@@ -88,11 +276,33 @@
       "type": "line",
       "source": "osm",
       "source-layer": "roads",
-      "filter": ["==", ["get", "kind"], "path"],
+      "filter": [
+        "==",
+        [
+          "get",
+          "kind"
+        ],
+        "path"
+      ],
       "paint": {
         "line-color": "#000",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.5, 16, 1.2],
-        "line-dasharray": [3, 2]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          10,
+          0.5,
+          16,
+          1.2
+        ],
+        "line-dasharray": [
+          3,
+          2
+        ]
       }
     },
     {
@@ -100,10 +310,40 @@
       "type": "line",
       "source": "osm",
       "source-layer": "roads",
-      "filter": ["any", ["==", ["get", "kind"], "minor_road"], ["==", ["get", "kind"], "medium_road"]],
+      "filter": [
+        "any",
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "minor_road"
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "medium_road"
+        ]
+      ],
       "paint": {
         "line-color": "#000",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.5, 16, 1.8]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          10,
+          0.5,
+          16,
+          1.8
+        ]
       }
     },
     {
@@ -111,10 +351,29 @@
       "type": "line",
       "source": "osm",
       "source-layer": "roads",
-      "filter": ["==", ["get", "kind"], "major_road"],
+      "filter": [
+        "==",
+        [
+          "get",
+          "kind"
+        ],
+        "major_road"
+      ],
       "paint": {
         "line-color": "#000",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 8, 0.8, 16, 4.5]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          8,
+          0.8,
+          16,
+          4.5
+        ]
       }
     },
     {
@@ -122,10 +381,29 @@
       "type": "line",
       "source": "osm",
       "source-layer": "roads",
-      "filter": ["==", ["get", "kind"], "highway"],
+      "filter": [
+        "==",
+        [
+          "get",
+          "kind"
+        ],
+        "highway"
+      ],
       "paint": {
         "line-color": "#000",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 6, 1.2, 16, 7]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          6,
+          1.2,
+          16,
+          7
+        ]
       }
     },
     {
@@ -134,17 +412,63 @@
       "source": "osm",
       "source-layer": "roads",
       "minzoom": 11,
-      "filter": ["any", ["==", ["get", "kind"], "major_road"], ["==", ["get", "kind"], "highway"]],
+      "filter": [
+        "any",
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "major_road"
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "highway"
+        ]
+      ],
       "layout": {
         "symbol-placement": "line",
-        "text-field": ["coalesce", ["get", "name:sv"], ["get", "name"]],
-        "text-font": ["Noto Sans Medium"],
-        "text-size": ["interpolate", ["linear"], ["zoom"], 11, 11.5, 16, 13.5],
+        "text-field": [
+          "coalesce",
+          [
+            "get",
+            "name:sv"
+          ],
+          [
+            "get",
+            "name"
+          ]
+        ],
+        "text-font": [
+          "Noto Sans Medium"
+        ],
+        "text-size": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          11,
+          11.5,
+          16,
+          13.5
+        ],
         "symbol-spacing": 350,
         "text-keep-upright": true,
         "text-max-angle": 35
       },
-      "paint": { "text-color": "#000", "text-halo-color": "#fff", "text-halo-width": 2 }
+      "paint": {
+        "text-color": "#000",
+        "text-halo-color": "#fff",
+        "text-halo-width": 2
+      }
     },
     {
       "id": "road-labels-minor",
@@ -152,17 +476,63 @@
       "source": "osm",
       "source-layer": "roads",
       "minzoom": 13,
-      "filter": ["any", ["==", ["get", "kind"], "medium_road"], ["==", ["get", "kind"], "minor_road"]],
+      "filter": [
+        "any",
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "medium_road"
+        ],
+        [
+          "==",
+          [
+            "get",
+            "kind"
+          ],
+          "minor_road"
+        ]
+      ],
       "layout": {
         "symbol-placement": "line",
-        "text-field": ["coalesce", ["get", "name:sv"], ["get", "name"]],
-        "text-font": ["Noto Sans Regular"],
-        "text-size": ["interpolate", ["linear"], ["zoom"], 13, 10.5, 16, 12],
+        "text-field": [
+          "coalesce",
+          [
+            "get",
+            "name:sv"
+          ],
+          [
+            "get",
+            "name"
+          ]
+        ],
+        "text-font": [
+          "Noto Sans Regular"
+        ],
+        "text-size": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          10.5,
+          16,
+          12
+        ],
         "symbol-spacing": 300,
         "text-keep-upright": true,
         "text-max-angle": 35
       },
-      "paint": { "text-color": "#000", "text-halo-color": "#fff", "text-halo-width": 1.75 }
+      "paint": {
+        "text-color": "#000",
+        "text-halo-color": "#fff",
+        "text-halo-width": 1.75
+      }
     },
     {
       "id": "place-labels",
@@ -170,11 +540,39 @@
       "source": "osm",
       "source-layer": "places",
       "layout": {
-        "text-field": ["coalesce", ["get", "name:sv"], ["get", "name"]],
-        "text-font": ["Noto Sans Medium"],
-        "text-size": ["interpolate", ["linear"], ["zoom"], 8, 12.5, 14, 16.5]
+        "text-field": [
+          "coalesce",
+          [
+            "get",
+            "name:sv"
+          ],
+          [
+            "get",
+            "name"
+          ]
+        ],
+        "text-font": [
+          "Noto Sans Medium"
+        ],
+        "text-size": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          8,
+          12.5,
+          14,
+          16.5
+        ]
       },
-      "paint": { "text-color": "#000", "text-halo-color": "#fff", "text-halo-width": 2 }
+      "paint": {
+        "text-color": "#000",
+        "text-halo-color": "#fff",
+        "text-halo-width": 2
+      }
     }
   ]
 }

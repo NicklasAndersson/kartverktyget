@@ -8,12 +8,17 @@
     "dev": "pnpm -r --parallel --filter @kvg/web --filter @kvg/api run dev",
     "build": "pnpm -r run build",
     "typecheck": "pnpm -r run typecheck",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "sync:styles": "node ./scripts/sync-protomaps-styles.mjs",
     "dev:web": "pnpm --filter @kvg/web dev",
     "dev:api": "pnpm --filter @kvg/api dev"
   },
   "devDependencies": {
     "@protomaps/basemaps": "5.7.2",
-    "typescript": "^5.6.3"
+    "@vitest/coverage-v8": "^2.1.5",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.5"
   }
 }

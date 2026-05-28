@@ -1,0 +1,46 @@
+# Exempel-konfiguration för att köra Kartvertyget i Docker.
+# Kopiera till `docker-compose.yml` och anpassa.
+
+services:
+  # ---------------------------------------------------------------------------
+  # Variant A — helt lokal: peka ut .pmtiles-filer i ./data/
+  # ---------------------------------------------------------------------------
+  kvg:
+    image: ghcr.io/nicklas/kartvertyget:latest    # eller "build: ."
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/data:ro
+    environment:
+      # Lokala filer mountade via /data
+      PMTILES_OSM_FILE: /data/sweden-osm.pmtiles
+      PMTILES_LM_FILE:  /data/sweden-lm.pmtiles
+      # Public base-URL (om appen körs bakom reverse-proxy med annan host).
+      # Utelämna lokalt; då härleds den från request-host.
+      # KVG_PUBLIC_BASE_URL: https://karta.example.com
+    restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Variant B — privat fjärr-bucket: containern proxar och döljer credentials.
+  # Browsern hämtar enbart `/pmtiles/osm`; Authorization-headern stannar i
+  # containern och läcker aldrig till klienten.
+  # ---------------------------------------------------------------------------
+  # kvg:
+  #   image: ghcr.io/nicklas/kartvertyget:latest
+  #   ports: ["8080:8080"]
+  #   environment:
+  #     PMTILES_OSM_URL: https://private.example.com/sweden-osm.pmtiles
+  #     PMTILES_OSM_AUTH: "Bearer ${MY_TOKEN}"          # från .env
+  #     PMTILES_OSM_PUBLIC: "false"                      # proxa via containern
+  #   restart: unless-stopped
+
+  # ---------------------------------------------------------------------------
+  # Variant C — publik bucket (URL OK att exponera, ingen auth)
+  # ---------------------------------------------------------------------------
+  # kvg:
+  #   image: ghcr.io/nicklas/kartvertyget:latest
+  #   ports: ["8080:8080"]
+  #   environment:
+  #     PMTILES_OSM_URL: https://kartverktyget.s3.eu-central-003.backblazeb2.com/sweden-osm.pmtiles
+  #     PMTILES_OSM_PUBLIC: "true"                       # browsern hämtar direkt
+  #   restart: unless-stopped

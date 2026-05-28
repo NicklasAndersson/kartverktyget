@@ -57,6 +57,17 @@ function getArchive(name: string, dataDir: string): ArchiveEntry | null {
   return entry;
 }
 
+/**
+ * Stänger alla öppna PMTiles-källor och tömmer cachen. Anropa vid process-exit
+ * så att fil-deskriptorer inte läcker mellan upprepade dev-starter eller tester.
+ */
+export function shutdownTiles() {
+  for (const entry of archives.values()) {
+    entry.source.close();
+  }
+  archives.clear();
+}
+
 export async function registerTilesRoutes(app: FastifyInstance, dataDir: string) {
   app.get<{ Params: { name: string } }>('/tiles/:name/metadata', async (req, reply) => {
     const entry = getArchive(req.params.name, dataDir);

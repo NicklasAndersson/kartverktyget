@@ -1,6 +1,5 @@
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
-import { readFileSync } from 'node:fs';
 import type { FastifyBaseLogger } from 'fastify';
 import {
   PRINT_DPI,
@@ -17,6 +16,7 @@ import {
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 import { renderMapPng } from './playwright.js';
 import { drawPageDecorations } from './decorations.js';
+import { loadStyle, resolveStylesDir } from '../styles.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -54,11 +54,12 @@ export async function renderAtlas(req: RenderRequest, log: FastifyBaseLogger): P
     const page = atlas.pages[i]!;
     const bounds = pageBoundsMeters(page, widthM, heightM);
     const pngBytes = await renderMapPng({
-      style: styleJsonFor(atlas.styleId, atlas.labels, atlas.labelSize, atlas.roadSize),
+      style: await styleJsonFor(atlas.styleId, atlas.mapSource, atlas.labels, atlas.labelSize, atlas.roadSize),
       bounds,
       widthPx: imgWpx,
       heightPx: imgHpx,
       overlays,
+      watercourses: atlas.watercourses !== false,
       contours: atlas.contours,
     });
 
@@ -93,32 +94,29 @@ export async function renderAtlas(req: RenderRequest, log: FastifyBaseLogger): P
 }
 
 /**
- * Läser stil-JSON från disk och patchar käll-URL:en till att vara absolut mot API-porten.
- * Playwright-browsern laddar render-page från 8787 → tiles måste hämtas från 8787 (same origin).
+ * Hämtar stil-JSON via vår egen /styles/-endpoint (samma omskrivning av
+ * `pmtiles://`-URL:er som webb-klienten får) och applicerar label/road-
+ * scaling samt eventuell labels-off. Returnerar ett vanligt JSON-objekt
+ * som Playwright skickar vidare till MapLibre.
  */
-function styleJsonFor(
+async function styleJsonFor(
   id: AtlasSpec['styleId'],
+  mapSource: AtlasSpec['mapSource'],
   labels: boolean,
   labelSize: AtlasSpec['labelSize'],
   roadSize: AtlasSpec['roadSize'],
-): object {
+): Promise<object> {
   const apiPort = process.env.PORT ?? '8787';
-  const styleDir = join(__dirname, '../../../../apps/web/public/styles');
-  const raw = readFileSync(join(styleDir, `${id}.json`), 'utf8');
-  const style = JSON.parse(raw) as {
+  const styleName = mapSource === 'lm' ? 'lantmateriet-topo10' : id;
+  // Hämta från vår egen /styles/-route så att pmtiles://-URL:erna redan är
+  // omskrivna utifrån aktuell PMTILES_*-konfiguration. Same-host, så även
+  // proxy-läget (med inbakade credentials) fungerar transparent.
+  const res = await fetch(`http://127.0.0.1:${apiPort}/styles/${styleName}.json`);
+  if (!res.ok) throw new Error(`failed to load style ${styleName}: HTTP ${res.status}`);
+  const style = (await res.json()) as {
     sources: Record<string, { url?: string; tiles?: string[] }>;
     layers?: Array<{ id?: string; type?: string; layout?: Record<string, unknown> }>;
   };
-  for (const src of Object.values(style.sources)) {
-    if (src.url?.startsWith('/tiles/')) {
-      src.url = `http://127.0.0.1:${apiPort}${src.url}`;
-    }
-    if (src.tiles) {
-      src.tiles = src.tiles.map((t) =>
-        t.startsWith('/tiles/') ? `http://127.0.0.1:${apiPort}${t}` : t,
-      );
-    }
-  }
   if (style.layers) {
     style.layers = applyLabelSizeToStyleLayers(style.layers, labelSize);
     style.layers = applyRoadSizeToStyleLayers(style.layers, roadSize);

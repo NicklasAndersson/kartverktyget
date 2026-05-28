@@ -19,6 +19,21 @@ export type StyleId =
   | 'protomaps-dusk-rose'
   | 'protomaps-flat';
 
+/**
+ * Underliggande datakälla för baskartan.
+ * - `osm`: Protomaps/OpenStreetMap (sweden.pmtiles), global täckning.
+ * - `lm`: Lantmäteriets Topografi 10 (sweden-lm.pmtiles), endast Sverige.
+ */
+export type MapSource = 'osm' | 'lm';
+
+export const DEFAULT_MAP_SOURCE: MapSource = 'osm';
+
+/** Käll-id (matchar nyckeln i `style.sources`) per datakälla. */
+export const MAP_SOURCE_KEY: Record<MapSource, string> = {
+  osm: 'osm',
+  lm: 'lm',
+};
+
 /** Vanliga kartskalor (denominator i 1:N). */
 export const COMMON_SCALES = [5000, 10000, 15000, 20000, 25000, 40000, 50000, 75000, 100000] as const;
 export type Scale = (typeof COMMON_SCALES)[number];
@@ -32,21 +47,27 @@ export const PAPER_SIZES = {
 
 export type PaperSize = keyof typeof PAPER_SIZES;
 export type Orientation = 'portrait' | 'landscape';
-export type LabelSize = 'small' | 'medium' | 'large' | 'xl';
+export type SizePreset = 'small' | 'medium' | 'large' | 'xl';
+export type LabelSize = number;
 
-export const LABEL_SIZE_FACTORS: Record<LabelSize, number> = {
+export const LABEL_SIZE_FACTORS: Record<SizePreset, number> = {
   small: 0.75,
   medium: 1.3,
   large: 1.6,
   xl: 1.95,
 };
 
-export const ROAD_SIZE_FACTORS: Record<LabelSize, number> = {
+export const ROAD_SIZE_FACTORS: Record<SizePreset, number> = {
   small: 0.8,
   medium: 1,
   large: 1.3,
   xl: 1.6,
 };
+
+export const DEFAULT_LABEL_SIZE = LABEL_SIZE_FACTORS.medium;
+export const DEFAULT_ROAD_SIZE = ROAD_SIZE_FACTORS.medium;
+export const LABEL_SIZE_RANGE = { min: LABEL_SIZE_FACTORS.small, max: 4.8, step: 0.05 } as const;
+export const ROAD_SIZE_RANGE = { min: ROAD_SIZE_FACTORS.small, max: 4, step: 0.05 } as const;
 
 /** Inställningar för en enskild atlas-sida. */
 export interface PageSpec {
@@ -67,12 +88,19 @@ export interface AtlasSpec {
   /** Överlapp mellan sidor i mm (rådgivande, används vid auto-snap). */
   overlap: number;
   styleId: StyleId;
+  /**
+   * Vilken datakälla baskartan ritas från. `styleId` används endast när
+   * `mapSource === 'osm'`; för `lm` är stilen `lantmateriet-topo10`.
+   */
+  mapSource: MapSource;
   /** Visa gatunamn och andra baskart-etiketter. */
   labels: boolean;
   /** Relativ storlek för baskartans etiketter. */
   labelSize: LabelSize;
   /** Relativ storlek för baskartans vägar. */
   roadSize: LabelSize;
+  /** Visa vattendrag som ett extra hjälplager ovanpå baskartan. */
+  watercourses: boolean;
   /** Visa MGRS-koordinater i utskrift och förhandsvisning. */
   mgrsGrid: boolean;
   /** Fullt rutnät eller endast MGRS i ramen. */
@@ -118,43 +146,54 @@ export function isBaseMapTextLayer(layer: StyleLayerLike): boolean {
 export function isBaseRoadLayer(layer: StyleLayerLike): boolean {
   if (layer.type !== 'line') return false;
   if (layer.id?.startsWith('kvg-')) return false;
-  return layer.source === 'osm' && layer['source-layer'] === 'roads';
+  const sourceLayer = layer['source-layer'];
+  if (layer.source === 'osm' && sourceLayer === 'roads') return true;
+  // Lantmäteriet-stilen använder samma två lager (roads + roads_minor) som vi
+  // skalar via vägbredds-reglaget.
+  if (layer.source === 'lm' && (sourceLayer === 'roads' || sourceLayer === 'roads_minor')) return true;
+  return false;
 }
 
 export function applyLabelSizeToStyleLayers<T extends StyleLayerLike>(layers: T[], labelSize: LabelSize): T[] {
-  const factor = LABEL_SIZE_FACTORS[labelSize];
-
   return layers.map((layer) => {
     if (!isBaseMapTextLayer(layer)) return layer;
-    const textSize = layer.layout?.['text-size'];
+    if (!layer.layout) return layer;
+    const textSize = layer.layout['text-size'];
     if (textSize == null) return layer;
 
     return {
       ...layer,
       layout: {
-        ...(layer.layout ?? {}),
-        'text-size': scaleStyleValue(textSize, factor),
+        ...layer.layout,
+        'text-size': scaleStyleValue(textSize, labelSize),
       },
     };
   });
 }
 
 export function applyRoadSizeToStyleLayers<T extends StyleLayerLike>(layers: T[], roadSize: LabelSize): T[] {
-  const factor = ROAD_SIZE_FACTORS[roadSize];
-
   return layers.map((layer) => {
     if (!isBaseRoadLayer(layer)) return layer;
-    const lineWidth = layer.paint?.['line-width'];
+    if (!layer.paint) return layer;
+    const lineWidth = layer.paint['line-width'];
     if (lineWidth == null) return layer;
 
     return {
       ...layer,
       paint: {
-        ...(layer.paint ?? {}),
-        'line-width': scaleStyleValue(lineWidth, factor),
+        ...layer.paint,
+        'line-width': scaleStyleValue(lineWidth, roadSize),
       },
     };
   });
+}
+
+export function normalizeLabelSize(value: unknown): LabelSize {
+  return normalizeSizeFactor(value, LABEL_SIZE_FACTORS, DEFAULT_LABEL_SIZE, LABEL_SIZE_RANGE.min, LABEL_SIZE_RANGE.max);
+}
+
+export function normalizeRoadSize(value: unknown): LabelSize {
+  return normalizeSizeFactor(value, ROAD_SIZE_FACTORS, DEFAULT_ROAD_SIZE, ROAD_SIZE_RANGE.min, ROAD_SIZE_RANGE.max);
 }
 
 function scaleStyleValue(value: unknown, factor: number): unknown {
@@ -185,6 +224,37 @@ function scaleStyleValue(value: unknown, factor: number): unknown {
 
 function roundLabelSize(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function normalizeSizeFactor(
+  value: unknown,
+  presets: Record<SizePreset, number>,
+  fallback: number,
+  min: number,
+  max: number,
+): number {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return roundLabelSize(clamp(value, min, max));
+  }
+  if (typeof value === 'string' && value in presets) {
+    return presets[value as SizePreset];
+  }
+  return fallback;
+}
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+/**
+ * Beräknar UTM-zon (1..60) för en given longitud i grader. Hanterar wrap-around
+ * vid antimeridianen så att lon ≥ 180 eller lon < -180 normaliseras korrekt
+ * istället för att producera ogiltiga zoner som 0 eller 61.
+ */
+export function utmZoneFromLon(lon: number): number {
+  const normalized = ((lon + 180) % 360 + 360) % 360; // i [0, 360)
+  const zone = Math.floor(normalized / 6) + 1;
+  return zone === 61 ? 60 : zone;
 }
 
 export function formatMgrs(mgrs: string): string {
@@ -241,7 +311,7 @@ export function computeMgrsGrid(args: {
   const { west, south, east, north } = args;
   const centerLon = (west + east) / 2;
   const centerLat = (south + north) / 2;
-  const zone = Math.floor((centerLon + 180) / 6) + 1;
+  const zone = utmZoneFromLon(centerLon);
   const isSouthernHemisphere = centerLat < 0;
   const utmDef = `+proj=utm +zone=${zone}${isSouthernHemisphere ? ' +south' : ''} +datum=WGS84 +units=m +no_defs`;
 

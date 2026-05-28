@@ -2,7 +2,7 @@ import type { PDFPage, PDFFont } from 'pdf-lib';
 import { degrees, rgb } from 'pdf-lib';
 import proj4 from 'proj4';
 import * as mgrsModule from 'mgrs';
-import { MM_PER_INCH, PRINT_DPI, computeMgrsGrid, formatMgrs, type AtlasSpec, type PageSpec } from '@kvg/shared';
+import { MM_PER_INCH, PRINT_DPI, computeMgrsGrid, formatMgrs, utmZoneFromLon, type AtlasSpec, type PageSpec } from '@kvg/shared';
 
 const mgrs = ('default' in mgrsModule ? mgrsModule.default : mgrsModule) as typeof import('mgrs');
 
@@ -46,7 +46,7 @@ export function drawPageDecorations(a: DecoArgs) {
 
   // 2. UTM-zon från sidans centrum.
   const [clon, clat] = page.center;
-  const zoneNum = Math.floor((clon + 180) / 6) + 1;
+  const zoneNum = utmZoneFromLon(clon);
   const zoneLetter = utmLatBand(clat);
   const utmDef = `+proj=utm +zone=${zoneNum}${clat < 0 ? ' +south' : ''} +datum=WGS84 +units=m +no_defs`;
   const fromWgs = proj4('WGS84', utmDef);
@@ -68,7 +68,8 @@ export function drawPageDecorations(a: DecoArgs) {
     font: fontBold,
     color: rgb(0, 0, 0),
   });
-  pdfPage.drawText(`UTM Zone ${zoneNum}${zoneLetter}  ·  WGS84`, {
+  const utmLabel = `UTM Zone ${zoneNum}${zoneLetter}  ·  WGS84`;
+  pdfPage.drawText(utmLabel, {
     x: mapXPt + 180,
     y: topY,
     size: 8,
@@ -76,58 +77,62 @@ export function drawPageDecorations(a: DecoArgs) {
     color: rgb(0, 0, 0),
   });
 
-  // 5. Bottommarginal: datum, sidnr, attribution.
-  const botY = mapYPt - 14;
-  const dateStr = new Date().toISOString().slice(0, 10);
-  pdfPage.drawText(`${dateStr}`, { x: mapXPt, y: botY, size: 7, font, color: rgb(0, 0, 0) });
-  const pageLabel = `Sida ${pageIndex + 1} / ${totalPages}`;
-  pdfPage.drawText(pageLabel, {
-    x: mapXPt + mapWPt - font.widthOfTextAtSize(pageLabel, 7),
-    y: botY,
-    size: 7,
-    font,
-    color: rgb(0, 0, 0),
-  });
-  const attribution = '© OpenStreetMap-bidragsgivare';
-  pdfPage.drawText(attribution, {
-    x: mapXPt + (mapWPt - font.widthOfTextAtSize(attribution, 6)) / 2,
-    y: botY,
-    size: 6,
-    font,
-    color: rgb(0, 0, 0),
-  });
-
-  // 6. Skalstreck i nedre vänstra hörnet av kartan (utanför ram, i marginal).
-  drawScaleBar({
-    pdfPage,
-    font,
-    x: mapXPt,
-    y: mapYPt - 30,
-    scale: atlas.scale,
-    ptPerMm,
-  });
-
-  // 7. Norrpil i nedre högra hörnet.
-  drawNorthArrow({
-    pdfPage,
-    font: fontBold,
-    cx: mapXPt + mapWPt - 14,
-    cy: mapYPt - 24,
-  });
-
-  // 8. MGRS-kvadratreferens för centrum (informativt).
+  // 5. Centrum-MGRS i toppraden, högerställd (informativt). Här har vi gott
+  // om utrymme och slipper krocka med skalstrecket nedanför kartan.
   try {
     const mgrsStr = formatMgrs(mgrs.forward([clon, clat], 4));
-    pdfPage.drawText(`Centrum MGRS: ${mgrsStr}`, {
-      x: mapXPt,
-      y: botY - 9,
-      size: 6,
+    const mgrsLine = `Centrum MGRS: ${mgrsStr}`;
+    const mgrsSize = 7;
+    pdfPage.drawText(mgrsLine, {
+      x: mapXPt + mapWPt - font.widthOfTextAtSize(mgrsLine, mgrsSize),
+      y: topY,
+      size: mgrsSize,
       font,
       color: rgb(0.2, 0.2, 0.2),
     });
   } catch {
     /* ignore */
   }
+
+  // 6. Bottommarginal: datum + sidnr (vänster) och attribution (centrerad).
+  // Sidnumret ligger ihop med datumet så högerkanten är fri för norrpilen.
+  const botY = mapYPt - 14;
+  const dateStr = new Date().toISOString().slice(0, 10);
+  const footerLeft = `${dateStr}  ·  Sida ${pageIndex + 1} / ${totalPages}`;
+  pdfPage.drawText(footerLeft, { x: mapXPt, y: botY, size: 7, font, color: rgb(0, 0, 0) });
+  // Endast Lantmäteriets attribution ritas (krävs av CC BY 4.0). OSM-rendering
+  // utelämnas medvetet enligt önskemål.
+  if (atlas.mapSource === 'lm') {
+    const attribution = '© Lantmäteriet (CC BY 4.0)';
+    pdfPage.drawText(attribution, {
+      x: mapXPt + (mapWPt - font.widthOfTextAtSize(attribution, 6)) / 2,
+      y: botY,
+      size: 6,
+      font,
+      color: rgb(0, 0, 0),
+    });
+  }
+
+  // 7. Skalstreck centrerat horisontellt under kartan, en bit under
+  // datum/attribution-raden så det inte överlappar texten.
+  const scaleTotalM = atlas.scale >= 25000 ? 2000 : 500;
+  const scaleWidthPt = ((scaleTotalM * 1000) / atlas.scale) * ptPerMm;
+  drawScaleBar({
+    pdfPage,
+    font,
+    x: mapXPt + (mapWPt - scaleWidthPt) / 2,
+    y: mapYPt - 34,
+    scale: atlas.scale,
+    ptPerMm,
+  });
+
+  // 8. Norrpil i nedre högra hörnet.
+  drawNorthArrow({
+    pdfPage,
+    font: fontBold,
+    cx: mapXPt + mapWPt - 14,
+    cy: mapYPt - 28,
+  });
 }
 
 function drawFrameMgrs(args: {
@@ -147,8 +152,11 @@ function drawFrameMgrs(args: {
 }) {
   const { pdfPage, font, mapXPt, mapYPt, mapWPt, mapHPt, atlas, utmDef, fromWgs, clon, clat, mapWidthMm, mapHeightMm } = args;
   const centerProj = fromWgs.forward([clon, clat]);
-  const centerE = centerProj[0]!;
-  const centerN = centerProj[1]!;
+  if (!Array.isArray(centerProj) || centerProj.length < 2 || typeof centerProj[0] !== 'number' || typeof centerProj[1] !== 'number') {
+    throw new Error(`proj4.forward returned unexpected result for center [${clon}, ${clat}]`);
+  }
+  const centerE = centerProj[0];
+  const centerN = centerProj[1];
   const halfWm = (mapWidthMm * atlas.scale) / 2000;
   const halfHm = (mapHeightMm * atlas.scale) / 2000;
   const westE = centerE - halfWm;
@@ -302,7 +310,7 @@ function projectToPage(
   return { x, y };
 }
 
-function estimateMapZoom(
+export function estimateMapZoom(
   bounds: { west: number; south: number; east: number; north: number },
   widthPx: number,
   heightPx: number,
@@ -326,10 +334,13 @@ function normalizeLonSpan(span: number) {
   return span;
 }
 
-function formatEdgeMgrsLabel(utmDef: string, easting: number, northing: number): string {
+export function formatEdgeMgrsLabel(utmDef: string, easting: number, northing: number): string {
   try {
     const lonLat = proj4(utmDef, 'WGS84', [easting, northing]);
-    return formatMgrs(mgrs.forward([lonLat[0]!, lonLat[1]!], 2));
+    if (!Array.isArray(lonLat) || lonLat.length < 2 || typeof lonLat[0] !== 'number' || typeof lonLat[1] !== 'number') {
+      return 'MGRS';
+    }
+    return formatMgrs(mgrs.forward([lonLat[0], lonLat[1]], 2));
   } catch {
     return 'MGRS';
   }
@@ -339,7 +350,7 @@ function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
 
-function utmLatBand(lat: number): string {
+export function utmLatBand(lat: number): string {
   // MGRS latitudband C..X (utelämnar I och O).
   const bands = 'CDEFGHJKLMNPQRSTUVWX';
   if (lat < -80 || lat >= 84) return 'Z';

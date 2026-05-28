@@ -3,29 +3,33 @@ import maplibregl, { Map as MLMap, MapLayerMouseEvent } from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
 import mlcontour from 'maplibre-contour';
 import type { FeatureCollection } from 'geojson';
-import { LABEL_SIZE_FACTORS, ROAD_SIZE_FACTORS, isBaseMapTextLayer, isBaseRoadLayer, type LabelSize } from '@kvg/shared';
+import { isBaseMapTextLayer, isBaseRoadLayer, type LabelSize, type MapSource } from '@kvg/shared';
 import { useStore } from '../state/store.js';
 import { computeMgrsGrid } from './mgrsGrid.js';
 import { computeAtlasPageRects } from './atlasGeom.js';
 import { latlonToMgrs } from '../utils/coords.js';
 
-// Registrera PMTiles-protokollet globalt (en gång).
+// Registrera PMTiles-protokollet globalt (en gång per modul-laddning). Att
+// hålla flaggan modul-lokal undviker kollisioner och varningar från MapLibre
+// vid Vite HMR när filen omladdas men maplibregl-instansen återanvänds.
+let pmtilesRegistered = false;
 const protocol = new Protocol();
-if (!(maplibregl as unknown as { __pmtilesRegistered?: boolean }).__pmtilesRegistered) {
+if (!pmtilesRegistered) {
   maplibregl.addProtocol('pmtiles', protocol.tile);
-  (maplibregl as unknown as { __pmtilesRegistered?: boolean }).__pmtilesRegistered = true;
+  pmtilesRegistered = true;
 }
 
-// Registrera maplibre-contour protokollet globalt (en gång).
+// Registrera maplibre-contour protokollet globalt (en gång per modul-laddning).
+let contourRegistered = false;
 const demSource = new mlcontour.DemSource({
   url: 'https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png',
   encoding: 'terrarium',
   maxzoom: 13,
   worker: true,
 });
-if (!(maplibregl as unknown as { __contourRegistered?: boolean }).__contourRegistered) {
+if (!contourRegistered) {
   demSource.setupMaplibre(maplibregl);
-  (maplibregl as unknown as { __contourRegistered?: boolean }).__contourRegistered = true;
+  contourRegistered = true;
 }
 
 const STOCKHOLM_CENTER: [number, number] = [18.0686, 59.3293];
@@ -40,9 +44,11 @@ export function MapView({ onCursor }: { onCursor: (s: string) => void }) {
   const mapLoadedRef = useRef(false);
 
   const styleId = useStore((s) => s.styleId);
+  const mapSource = useStore((s) => s.mapSource);
   const labels = useStore((s) => s.labels);
   const labelSize = useStore((s) => s.labelSize);
   const roadSize = useStore((s) => s.roadSize);
+  const watercourses = useStore((s) => s.watercourses);
   const contours = useStore((s) => s.contours);
   const mgrsGrid = useStore((s) => s.mgrsGrid);
   const mgrsMode = useStore((s) => s.mgrsMode);
@@ -61,7 +67,7 @@ export function MapView({ onCursor }: { onCursor: (s: string) => void }) {
     const initialView = useStore.getState().mapView;
     const map = new maplibregl.Map({
       container: containerRef.current,
-      style: `/styles/${styleId}.json`,
+      style: styleUrlFor(useStore.getState().mapSource, styleId),
       center: initialView.center ?? STOCKHOLM_CENTER,
       zoom: initialView.zoom ?? 11,
       bearing: initialView.bearing ?? 0,
@@ -81,6 +87,8 @@ export function MapView({ onCursor }: { onCursor: (s: string) => void }) {
       mapLoadedRef.current = true;
       restoreMapState(map);
     });
+
+    setupAtlasDrag(map);
 
     map.on('moveend', () => {
       const state = useStore.getState();
@@ -117,12 +125,12 @@ export function MapView({ onCursor }: { onCursor: (s: string) => void }) {
       restoreMapState(map);
     };
     map.once('style.load', restoreAfterStyleLoad);
-    map.setStyle(`/styles/${styleId}.json`, { diff: false });
+    map.setStyle(styleUrlFor(mapSource, styleId), { diff: false });
     return () => {
       map.off('style.load', restoreAfterStyleLoad);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [styleId]);
+  }, [styleId, mapSource]);
 
   // Reagera på overlay-/atlas-ändringar.
   useEffect(() => {
@@ -143,17 +151,36 @@ export function MapView({ onCursor }: { onCursor: (s: string) => void }) {
     applyBaseTextVisibility(map, labels);
   }, [labels]);
 
+  // Re-applicera text/vägbredd-skalningen även när stilen byts (mapSource/styleId)
+  // eller om effekten kör innan stilen är klar. Annars fastnar gamla värden tills
+  // användaren rör en slider eller laddar om sidan.
   useEffect(() => {
     const map = mapRef.current;
-    if (!map || !map.isStyleLoaded()) return;
-    applyBaseTextSize(map, labelSize);
-  }, [labelSize]);
+    if (!map) return;
+    const apply = () => applyBaseTextSize(map, labelSize);
+    if (map.isStyleLoaded()) apply();
+    else map.once('idle', apply);
+    return () => {
+      map.off('idle', apply);
+    };
+  }, [labelSize, mapSource, styleId]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map) return;
+    const apply = () => applyBaseRoadSize(map, roadSize);
+    if (map.isStyleLoaded()) apply();
+    else map.once('idle', apply);
+    return () => {
+      map.off('idle', apply);
+    };
+  }, [roadSize, mapSource, styleId]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.isStyleLoaded()) return;
-    applyBaseRoadSize(map, roadSize);
-  }, [roadSize]);
+    syncWatercourseLayer(map, watercourses);
+  }, [watercourses]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -161,15 +188,22 @@ export function MapView({ onCursor }: { onCursor: (s: string) => void }) {
     updateGrid(map, mgrsGrid, mgrsMode, mgrsGridSizeBias);
   }, [mgrsGrid, mgrsMode, mgrsGridSizeBias]);
 
-  // Höjdkurvor: lägg till/ta bort contour-lager vid toggle.
+  // Höjdkurvor: toggle styr olika saker beroende på källa.
+  // - LM topo10: lagret innehåller redan färdiga höjdkurvor från Lantmäteriet
+  //   (lager-id contours-minor/contours-major/contour-labels i stylen). Vi
+  //   togglar bara visibility på dessa – inget DEM-overlay läggs ovanpå.
+  // - Övriga källor (protomaps/OSM m.fl.): saknar konturer, så vi lägger
+  //   till/tar bort overlay från terrarium-DEM via maplibre-contour.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !mapLoadedRef.current) return;
     const syncContours = () => {
-      if (contours) {
-        addContourLayers(map);
+      if (mapSource === 'lm') {
+        removeContourLayers(map); // säkerställ att ev. tidigare DEM-overlay tas bort
+        setLmContourVisibility(map, contours);
       } else {
-        removeContourLayers(map);
+        if (contours) addContourLayers(map);
+        else removeContourLayers(map);
       }
     };
     if (!map.isStyleLoaded()) {
@@ -179,7 +213,7 @@ export function MapView({ onCursor }: { onCursor: (s: string) => void }) {
       };
     }
     syncContours();
-  }, [contours]);
+  }, [contours, mapSource]);
 
   // Klickhantering för ritläge.
   useEffect(() => {
@@ -218,6 +252,11 @@ export function MapView({ onCursor }: { onCursor: (s: string) => void }) {
 
 // ---------------- helpers ----------------
 
+function styleUrlFor(mapSource: MapSource, styleId: string): string {
+  if (mapSource === 'lm') return '/styles/lantmateriet-topo10.json';
+  return `/styles/${styleId}.json`;
+}
+
 const ICON_NAMES = ['tent', 'fire', 'water', 'parking', 'warning'] as const;
 const MONITORED_KINDS: Record<'landcover' | 'landuse', readonly string[]> = {
   landcover: ['wood', 'scrub', 'grass', 'crop', 'wetland'],
@@ -247,9 +286,10 @@ type CoverageInfo = { wildcard: boolean; kinds: Set<string> };
 
 type TextVisibilityMap = Map<string, 'visible' | 'none' | undefined>;
 
-type TextSizeMap = Map<string, unknown>;
+// Värden är MapLibre style-uttryck: primär (number/string), array (interpolate/step) eller saknad.
+type TextSizeMap = Map<string, number | string | unknown[] | null | undefined>;
 
-type RoadSizeMap = Map<string, unknown>;
+type RoadSizeMap = Map<string, number | string | unknown[] | null | undefined>;
 
 type MapWithLabelState = MLMap & {
   __kvgBaseTextVisibility?: TextVisibilityMap;
@@ -259,7 +299,7 @@ type MapWithLabelState = MLMap & {
 
 function restoreMapState(map: MLMap) {
   rememberBaseTextVisibility(map);
-  const { atlas, overlays, contours, mgrsGrid, mgrsMode, mgrsGridSizeBias, labels } = useStore.getState();
+  const { atlas, overlays, contours, mgrsGrid, mgrsMode, mgrsGridSizeBias, labels, watercourses, mapSource } = useStore.getState();
   rememberBaseTextSize(map);
   rememberBaseRoadSize(map);
   applyBaseTextSize(map, atlas.labelSize);
@@ -268,10 +308,13 @@ function restoreMapState(map: MLMap) {
   setupOverlayLayers(map);
   setupGridLayer(map);
   setupAtlasLayer(map);
+  syncWatercourseLayer(map, watercourses);
   updateGrid(map, mgrsGrid, mgrsMode, mgrsGridSizeBias);
   updateAtlas(map, atlas);
   updateOverlays(map, overlays);
-  if (contours) {
+  if (mapSource === 'lm') {
+    setLmContourVisibility(map, contours);
+  } else if (contours) {
     addContourLayers(map);
   }
 }
@@ -349,23 +392,34 @@ function rememberBaseTextVisibility(map: MLMap) {
 }
 
 function rememberBaseTextSize(map: MLMap) {
-  const textSizes = new Map<string, unknown>();
+  const textSizes: TextSizeMap = new Map();
   const layers = map.getStyle().layers ?? [];
   for (const layer of layers) {
     if (!isBaseMapTextLayer(layer)) continue;
-    textSizes.set(layer.id, (layer.layout as Record<string, unknown> | undefined)?.['text-size']);
+    const textSize = (layer.layout as Record<string, unknown> | undefined)?.['text-size'];
+    textSizes.set(layer.id, normalizeStyleValue(textSize));
   }
   (map as MapWithLabelState).__kvgBaseTextSize = textSizes;
 }
 
 function rememberBaseRoadSize(map: MLMap) {
-  const roadSizes = new Map<string, unknown>();
+  const roadSizes: RoadSizeMap = new Map();
   const layers = map.getStyle().layers ?? [];
   for (const layer of layers) {
     if (!isBaseRoadLayer(layer)) continue;
-    roadSizes.set(layer.id, (layer.paint as Record<string, unknown> | undefined)?.['line-width']);
+    const lineWidth = (layer.paint as Record<string, unknown> | undefined)?.['line-width'];
+    roadSizes.set(layer.id, normalizeStyleValue(lineWidth));
   }
   (map as MapWithLabelState).__kvgBaseRoadSize = roadSizes;
+}
+
+// MapLibre style-property-värden är primärer eller arrayer (uttryck). Andra typer
+// (objekt, function) förekommer inte i våra stilar och faller tillbaka till null.
+function normalizeStyleValue(value: unknown): number | string | unknown[] | null | undefined {
+  if (value == null) return value as null | undefined;
+  if (typeof value === 'number' || typeof value === 'string') return value;
+  if (Array.isArray(value)) return value;
+  return null;
 }
 
 function applyBaseTextVisibility(map: MLMap, visible: boolean) {
@@ -378,10 +432,19 @@ function applyBaseTextVisibility(map: MLMap, visible: boolean) {
   }
 }
 
+// Stilarna är kalibrerade för utskrift i 300 DPI. På skärm (≈96 DPI) blir
+// samma `text-size`/`line-width` ungefär 3× större fysiskt, vilket gör att
+// preview-kartan ser ut att ha mycket grövre vägar och text än renderingen.
+// Vi skalar därför ned på webben så att previewen approximerar hur PDF:en
+// faktiskt kommer att se ut. Användarens reglage (labelSize/roadSize)
+// multipliceras ovanpå.
+const WEB_PREVIEW_TEXT_FACTOR = 0.55;
+const WEB_PREVIEW_ROAD_FACTOR = 0.6;
+
 function applyBaseTextSize(map: MLMap, labelSize: LabelSize) {
-  const factor = LABEL_SIZE_FACTORS[labelSize];
   const layers = map.getStyle().layers ?? [];
-  const baseTextSizes = (map as MapWithLabelState).__kvgBaseTextSize ?? new Map<string, unknown>();
+  const baseTextSizes: TextSizeMap = (map as MapWithLabelState).__kvgBaseTextSize ?? new Map();
+  const factor = labelSize * WEB_PREVIEW_TEXT_FACTOR;
   for (const layer of layers) {
     if (!isBaseMapTextLayer(layer) || !layer.id) continue;
     const originalTextSize = baseTextSizes.get(layer.id);
@@ -391,9 +454,9 @@ function applyBaseTextSize(map: MLMap, labelSize: LabelSize) {
 }
 
 function applyBaseRoadSize(map: MLMap, roadSize: LabelSize) {
-  const factor = ROAD_SIZE_FACTORS[roadSize];
   const layers = map.getStyle().layers ?? [];
-  const baseRoadSizes = (map as MapWithLabelState).__kvgBaseRoadSize ?? new Map<string, unknown>();
+  const baseRoadSizes: RoadSizeMap = (map as MapWithLabelState).__kvgBaseRoadSize ?? new Map();
+  const factor = roadSize * WEB_PREVIEW_ROAD_FACTOR;
   for (const layer of layers) {
     if (!isBaseRoadLayer(layer) || !layer.id) continue;
     const originalRoadSize = baseRoadSizes.get(layer.id);
@@ -603,6 +666,115 @@ function updateAtlas(map: MLMap, atlas: ReturnType<typeof useStore.getState>['at
   if (src) src.setData(fc);
 }
 
+/**
+ * Gör atlas-sidorna dragbara: klick-och-dra på en sidpolygon flyttar sidans
+ * centrum. Registreras en gång per map-instans; lager-events fungerar även
+ * innan lagret existerar.
+ */
+function setupAtlasDrag(map: MLMap) {
+  let drag: {
+    pageId: string;
+    startLng: number;
+    startLat: number;
+    origLng: number;
+    origLat: number;
+  } | null = null;
+  const canvas = map.getCanvas();
+
+  map.on('mouseenter', 'kvg-atlas-fill', () => {
+    if (!drag) canvas.style.cursor = 'grab';
+  });
+  map.on('mouseleave', 'kvg-atlas-fill', () => {
+    if (!drag) canvas.style.cursor = '';
+  });
+
+  map.on('mousedown', 'kvg-atlas-fill', (e) => {
+    if (e.originalEvent.button !== 0) return;
+    const pageId = e.features?.[0]?.properties?.pageId as string | undefined;
+    if (!pageId) return;
+    const page = useStore.getState().atlas.pages.find((p) => p.id === pageId);
+    if (!page) return;
+    e.preventDefault();
+    drag = {
+      pageId,
+      startLng: e.lngLat.lng,
+      startLat: e.lngLat.lat,
+      origLng: page.center[0],
+      origLat: page.center[1],
+    };
+    map.dragPan.disable();
+    canvas.style.cursor = 'grabbing';
+  });
+
+  map.on('mousemove', (e) => {
+    if (!drag) return;
+    const dLng = e.lngLat.lng - drag.startLng;
+    const dLat = e.lngLat.lat - drag.startLat;
+    useStore.getState().updatePage(drag.pageId, {
+      center: [drag.origLng + dLng, drag.origLat + dLat],
+    });
+  });
+
+  const finish = () => {
+    if (!drag) return;
+    drag = null;
+    map.dragPan.enable();
+    canvas.style.cursor = '';
+  };
+  map.on('mouseup', finish);
+  map.on('mouseout', finish);
+}
+
+function syncWatercourseLayer(map: MLMap, enabled: boolean) {
+  if (!enabled) {
+    removeWatercourseLayer(map);
+    return;
+  }
+  addWatercourseLayer(map);
+}
+
+function addWatercourseLayer(map: MLMap) {
+  if (map.getLayer('kvg-watercourses')) return;
+  const sourceId = findWaterSourceId(map);
+  if (!sourceId) return;
+
+  const beforeId = ['kvg-grid-line', 'kvg-atlas-fill', 'kvg-tracks-line'].find((layerId) => map.getLayer(layerId));
+  map.addLayer(
+    {
+      id: 'kvg-watercourses',
+      type: 'line',
+      source: sourceId,
+      'source-layer': 'water',
+      filter: [
+        'all',
+        ['==', ['geometry-type'], 'LineString'],
+        ['match', ['get', 'kind'], ['river', 'stream', 'canal'], true, false],
+      ],
+      paint: {
+        'line-color': '#2f86c6',
+        'line-width': ['interpolate', ['linear'], ['zoom'], 7, 0.6, 10, 1.1, 13, 2, 15, 3],
+        'line-opacity': 0.95,
+      },
+    },
+    beforeId,
+  );
+}
+
+function removeWatercourseLayer(map: MLMap) {
+  if (map.getLayer('kvg-watercourses')) map.removeLayer('kvg-watercourses');
+}
+
+function findWaterSourceId(map: MLMap): string | null {
+  const layers = map.getStyle().layers ?? [];
+  for (const layer of layers) {
+    const sourceLayer = (layer as { 'source-layer'?: unknown })['source-layer'];
+    const source = (layer as { source?: unknown }).source;
+    if (sourceLayer !== 'water' || typeof source !== 'string') continue;
+    return source;
+  }
+  return null;
+}
+
 // ----------- höjdkurvor (maplibre-contour) -----------
 
 const CONTOUR_URL = demSource.contourProtocolUrl({
@@ -654,4 +826,18 @@ function removeContourLayers(map: MLMap) {
   if (map.getLayer('kvg-contour-major')) map.removeLayer('kvg-contour-major');
   if (map.getLayer('kvg-contour-minor')) map.removeLayer('kvg-contour-minor');
   if (map.getSource('kvg-contours')) map.removeSource('kvg-contours');
+}
+
+// LM topo10-stylen har egna höjdkurvor som inbyggda lager. Vi togglar deras
+// visibility istället för att lägga till/ta bort dem (lagren är källans, inte
+// vår overlay).
+const LM_CONTOUR_LAYER_IDS = ['contours-minor', 'contours-major', 'contour-labels'];
+
+function setLmContourVisibility(map: MLMap, visible: boolean) {
+  const value = visible ? 'visible' : 'none';
+  for (const id of LM_CONTOUR_LAYER_IDS) {
+    if (map.getLayer(id)) {
+      map.setLayoutProperty(id, 'visibility', value);
+    }
+  }
 }

@@ -11,7 +11,8 @@ const ATTRIBUTION =
   '<a href="https://github.com/protomaps/basemaps">Protomaps</a> © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
 const GLYPHS_URL = 'https://protomaps.github.io/basemaps-assets/fonts/{fontstack}/{range}.pbf';
 const SOURCE_ID = 'protomaps';
-const TILEJSON_URL = '/tiles/sweden.json';
+const TILEJSON_URL =
+  'pmtiles://https://kartverktyget.s3.eu-central-003.backblazeb2.com/sweden-osm.pmtiles';
 const LANGUAGE = 'sv';
 const SAFE_FONTS = {
   regular: 'Noto Sans Regular',

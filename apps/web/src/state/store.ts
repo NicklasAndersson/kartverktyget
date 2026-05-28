@@ -1,7 +1,9 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { FeatureCollection, LineString, Point } from 'geojson';
-import type { AtlasSpec, LabelSize, Overlays, PageSpec, StyleId } from '@kvg/shared';
+import { DEFAULT_LABEL_SIZE, DEFAULT_ROAD_SIZE, normalizeLabelSize, normalizeRoadSize } from '@kvg/shared';
+import type { AtlasSpec, LabelSize, MapSource, Overlays, PageSpec, StyleId } from '@kvg/shared';
+import { DEFAULT_MAP_SOURCE } from '@kvg/shared';
 
 const emptyTracks: FeatureCollection<LineString> = { type: 'FeatureCollection', features: [] };
 const emptyWaypoints: FeatureCollection<Point> = { type: 'FeatureCollection', features: [] };
@@ -14,12 +16,16 @@ type PersistedAppState = Pick<AppState, 'atlas' | 'overlays' | 'drawMode' | 'ico
 interface AppState {
   styleId: StyleId;
   setStyleId: (id: StyleId) => void;
+  mapSource: MapSource;
+  setMapSource: (source: MapSource) => void;
   labels: boolean;
   setLabels: (b: boolean) => void;
   labelSize: LabelSize;
   setLabelSize: (size: LabelSize) => void;
   roadSize: LabelSize;
   setRoadSize: (size: LabelSize) => void;
+  watercourses: boolean;
+  setWatercourses: (b: boolean) => void;
   contours: boolean;
   setContours: (b: boolean) => void;
   mgrsGrid: boolean;
@@ -37,8 +43,10 @@ interface AppState {
   atlas: AtlasSpec;
   setAtlas: (a: AtlasSpec) => void;
   addPage: (p: PageSpec) => void;
+  addPages: (pages: PageSpec[]) => void;
   updatePage: (id: string, p: Partial<PageSpec>) => void;
   removePage: (id: string) => void;
+  clearPages: () => void;
 
   drawMode: 'none' | 'waypoint' | 'track' | 'icon';
   setDrawMode: (m: AppState['drawMode']) => void;
@@ -55,9 +63,11 @@ const initialAtlas: AtlasSpec = {
   margin: 15,
   overlap: 10,
   styleId: 'friluft',
+  mapSource: DEFAULT_MAP_SOURCE,
   labels: true,
-  labelSize: 'medium',
-  roadSize: 'medium',
+  labelSize: DEFAULT_LABEL_SIZE,
+  roadSize: DEFAULT_ROAD_SIZE,
+  watercourses: true,
   mgrsGrid: true,
   mgrsMode: 'full',
   mgrsGridSizeBias: 0,
@@ -70,12 +80,24 @@ export const useStore = create<AppState>()(
     (set) => ({
       styleId: initialAtlas.styleId,
       setStyleId: (id) => set((s) => ({ styleId: id, atlas: { ...s.atlas, styleId: id } })),
+      mapSource: initialAtlas.mapSource,
+      setMapSource: (mapSource) => set((s) => ({ mapSource, atlas: { ...s.atlas, mapSource } })),
       labels: initialAtlas.labels,
       setLabels: (b) => set((s) => ({ labels: b, atlas: { ...s.atlas, labels: b } })),
       labelSize: initialAtlas.labelSize,
-      setLabelSize: (labelSize) => set((s) => ({ labelSize, atlas: { ...s.atlas, labelSize } })),
+      setLabelSize: (labelSize) =>
+        set((s) => {
+          const next = normalizeLabelSize(labelSize);
+          return { labelSize: next, atlas: { ...s.atlas, labelSize: next } };
+        }),
       roadSize: initialAtlas.roadSize,
-      setRoadSize: (roadSize) => set((s) => ({ roadSize, atlas: { ...s.atlas, roadSize } })),
+      setRoadSize: (roadSize) =>
+        set((s) => {
+          const next = normalizeRoadSize(roadSize);
+          return { roadSize: next, atlas: { ...s.atlas, roadSize: next } };
+        }),
+      watercourses: initialAtlas.watercourses,
+      setWatercourses: (watercourses) => set((s) => ({ watercourses, atlas: { ...s.atlas, watercourses } })),
       contours: initialAtlas.contours,
       setContours: (b) => set((s) => ({ contours: b, atlas: { ...s.atlas, contours: b } })),
       mgrsGrid: initialAtlas.mgrsGrid,
@@ -110,13 +132,18 @@ export const useStore = create<AppState>()(
       clearOverlays: () => set({ overlays: { tracks: emptyTracks, waypoints: emptyWaypoints } }),
 
       atlas: initialAtlas,
-      setAtlas: (atlas) => set({ atlas, ...syncAtlasState(atlas) }),
+      setAtlas: (atlas) => {
+        const normalized = normalizeAtlas(atlas);
+        set({ atlas: normalized, ...syncAtlasState(normalized) });
+      },
       addPage: (p) => set((s) => ({ atlas: { ...s.atlas, pages: [...s.atlas.pages, p] } })),
+      addPages: (pages) => set((s) => ({ atlas: { ...s.atlas, pages: [...s.atlas.pages, ...pages] } })),
       updatePage: (id, p) =>
         set((s) => ({
           atlas: { ...s.atlas, pages: s.atlas.pages.map((x) => (x.id === id ? { ...x, ...p } : x)) },
         })),
       removePage: (id) => set((s) => ({ atlas: { ...s.atlas, pages: s.atlas.pages.filter((x) => x.id !== id) } })),
+      clearPages: () => set((s) => ({ atlas: { ...s.atlas, pages: [] } })),
 
       drawMode: 'none',
       setDrawMode: (m) => set({ drawMode: m }),
@@ -156,9 +183,11 @@ export const useStore = create<AppState>()(
 function syncAtlasState(atlas: AtlasSpec) {
   return {
     styleId: atlas.styleId,
+    mapSource: atlas.mapSource,
     labels: atlas.labels,
     labelSize: atlas.labelSize,
     roadSize: atlas.roadSize,
+    watercourses: atlas.watercourses,
     contours: atlas.contours,
     mgrsGrid: atlas.mgrsGrid,
     mgrsMode: atlas.mgrsMode,
@@ -170,8 +199,15 @@ function normalizeAtlas(atlas: Partial<AtlasSpec> | undefined): AtlasSpec {
   return {
     ...initialAtlas,
     ...atlas,
+    mapSource: normalizeMapSource(atlas?.mapSource),
+    labelSize: normalizeLabelSize(atlas?.labelSize),
+    roadSize: normalizeRoadSize(atlas?.roadSize),
     pages: Array.isArray(atlas?.pages) ? atlas.pages : initialAtlas.pages,
   };
+}
+
+function normalizeMapSource(value: unknown): MapSource {
+  return value === 'lm' || value === 'osm' ? value : DEFAULT_MAP_SOURCE;
 }
 
 function normalizeOverlays(overlays: Partial<Overlays> | undefined): Overlays {

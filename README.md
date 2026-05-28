@@ -9,6 +9,7 @@ Webbverktyg för att skapa flersidiga, exakt skalade fältkartor i PDF från Ope
 - [Arkitektur](#arkitektur)
 - [Stack](#stack)
 - [Kom igång](#kom-igång)
+- [Docker](#docker)
 - [Kartdata](#kartdata)
 - [Funktioner](#funktioner)
 - [Kartstilar](#kartstilar)
@@ -88,17 +89,60 @@ pnpm typecheck
 
 ---
 
+## Docker
+
+Hela appen (web + api + Playwright) paketeras som en enda image som serverar
+UI, API och en valfri PMTiles-proxy på samma port. PMTiles-källor pekas ut via
+env-vars: lokal fil (volume), privat fjärr-URL (proxas av containern så
+credentials aldrig läcker till browsern) eller publik fjärr-URL (direkt).
+
+```bash
+docker run --rm -p 8080:8080 \
+  -v "$PWD/data:/data:ro" \
+  -e PMTILES_OSM_FILE=/data/sweden-osm.pmtiles \
+  ghcr.io/nicklas/kartvertyget:latest
+```
+
+Full referens (alla lägen, env-vars, endpoints, reverse-proxy): [docs/docker.md](docs/docker.md).
+Image byggs i CI av [.github/workflows/docker.yml](.github/workflows/docker.yml)
+och publiceras till GHCR.
+
+---
+
 ## Kartdata
 
-Kartdata lagras i `data/` och ingår **inte** i git. Byggs lokalt en gång.
+Kartdata lagras i `data/` och ingår **inte** i git. Webbappen läser PMTiles
+direkt från Backblaze B2 via `pmtiles://`-protokollet — ingen lokal datafil
+behövs för att köra dev-servern. Skripten nedan används bara när nytt data
+ska byggas och publiceras.
 
-### Vector tiles (OSM)
+### Vector tiles (OSM, Protomaps)
 
 ```bash
 ./scripts/build-pmtiles.sh
 ```
 
 Extraherar `data/sweden.pmtiles` (zoom 0–15) från Protomaps dagliga planet-build via HTTP range-requests. Tar 3–5 minuter. Kräver `pmtiles` CLI.
+
+### Vector tiles (Lantmäteriet Topografi 10)
+
+Komplett byggpipeline från Lantmäteriets uttagstjänst (CC BY 4.0) till en
+publik PMTiles-fil på B2. Tar ~6–8 h på en CPX51 hos Hetzner.
+
+```bash
+cp .env.example .env       # fyll i B2-credentials + LM_REMOTE_HOST
+./scripts/build-lm-pmtiles-remote.sh   # bygger på Hetzner, hämtar hem .pmtiles
+./scripts/upload-pmtiles-b2.sh         # laddar upp till B2 (multipart)
+```
+
+För prototyp: `--bbox=17.7,59.2,18.3,59.5` (Stockholm, ~några minuter).
+
+Hetzner-runbook (skapa server, snapshot, ssh-host-key efter restore, resume,
+felsökning) finns i
+[docs/datakallor/lantmateriet-remote-build.md](docs/datakallor/lantmateriet-remote-build.md).
+Schemaförslaget per lager (vilka GPKG-tabeller som blir vilka lager och vad
+stilen förväntar sig) finns i
+[docs/datakallor/lantmateriet-topografi10.md](docs/datakallor/lantmateriet-topografi10.md).
 
 Alternativt med Planetiler (långsammare, ~30–90 min):
 ```bash
@@ -135,6 +179,7 @@ Filen `data/sweden.pmtiles` innehåller följande lager:
 - **Persistens i webbläsaren**: atlas, ritlager, MGRS-/stilval och aktuell kartposition sparas i `localStorage` så att omladdning inte nollställer arbetet.
 - **MGRS-statusrad** längst ned visar full MGRS-referens under muspekaren i realtid (zon, bokstäver och koordinatdelar) samt WGS84 decimal.
 - **Textetiketter**: gatunamn och annan baskarttext kan slås av/på och påverkar både kartvyn och PDF-renderingen.
+- **Vattendrag** kan slås av/på som ett separat hjälplager och visas konsekvent i både kartvyn och PDF:en.
 - **MGRS-visning** kan slås av/på och växla mellan fullt rutnät eller endast koordinater i ramen. I PDF visas kantkoordinater alltid när MGRS är aktivt, och de skrivs som full MGRS med zon och bokstäver. Fullt rutnät skalar med zoomnivån (10 km, 1 km, 100 m, 10 m) och har en separat inställning för större eller mindre rutor vid samma zoom.
 - **Höjdkurvor** (valfri) via `maplibre-contour` med separata lager för index- och mellankurvor.
 
@@ -258,6 +303,7 @@ State persisteras i webbläsarens `localStorage` under nyckeln `kvg-web-state`, 
 |---|---|---|
 | `styleId` | `StyleId` | Aktiv kartstil (`friluft`, `sw-laser`, `minimal`) |
 | `labels` | `boolean` | Gatunamn och annan baskarttext på/av |
+| `watercourses` | `boolean` | Visa vattendrag som ett separat hjälplager |
 | `contours` | `boolean` | Höjdkurvor på/av |
 | `mgrsGrid` | `boolean` | MGRS-visning på/av i kartvy och PDF |
 | `mgrsMode` | `'full'│'frame'` | Fullt MGRS-rutnät eller endast MGRS i ramen |

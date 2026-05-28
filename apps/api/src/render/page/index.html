@@ -68,8 +68,39 @@
         });
       }
 
+      function findWaterSourceId(map) {
+        const layers = map.getStyle().layers || [];
+        for (const layer of layers) {
+          if (layer['source-layer'] !== 'water' || typeof layer.source !== 'string') continue;
+          return layer.source;
+        }
+        return null;
+      }
+
+      function addWatercourseLayer(map) {
+        if (map.getLayer('kvg-watercourses')) return;
+        const sourceId = findWaterSourceId(map);
+        if (!sourceId) return;
+        map.addLayer({
+          id: 'kvg-watercourses',
+          type: 'line',
+          source: sourceId,
+          'source-layer': 'water',
+          filter: [
+            'all',
+            ['==', ['geometry-type'], 'LineString'],
+            ['match', ['get', 'kind'], ['river', 'stream', 'canal'], true, false],
+          ],
+          paint: {
+            'line-color': '#2f86c6',
+            'line-width': ['interpolate', ['linear'], ['zoom'], 7, 0.6, 10, 1.1, 13, 2, 15, 3],
+            'line-opacity': 0.95,
+          },
+        });
+      }
+
       window.kvgRender = async function (args) {
-        const { style, bounds, widthPx, heightPx, overlays, contours } = args;
+        const { style, bounds, widthPx, heightPx, overlays, watercourses = true, contours } = args;
         document.body.style.width = widthPx + 'px';
         document.body.style.height = heightPx + 'px';
         const el = document.getElementById('map');
@@ -87,6 +118,9 @@
 
         if (contours) {
           addContourLayers(map);
+        }
+        if (watercourses) {
+          addWatercourseLayer(map);
         }
 
         // Overlays.
