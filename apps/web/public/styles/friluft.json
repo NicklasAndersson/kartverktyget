@@ -5,7 +5,7 @@
   "sources": {
     "osm": {
       "type": "vector",
-      "url": "pmtiles://https://kartverktyget.s3.eu-central-003.backblazeb2.com/sweden-osm.pmtiles"
+      "url": "pmtiles://https://example.com/sweden-osm.pmtiles"
     }
   },
   "layers": [

@@ -5,7 +5,7 @@
   "sources": {
     "lm": {
       "type": "vector",
-      "url": "pmtiles://https://kartverktyget.s3.eu-central-003.backblazeb2.com/sweden-lm.pmtiles",
+      "url": "pmtiles://https://example.com/sweden-lm.pmtiles",
       "attribution": "© Lantmäteriet (CC BY 4.0)"
     }
   },
@@ -13,7 +13,9 @@
     {
       "id": "background",
       "type": "background",
-      "paint": { "background-color": "#aed3ea" }
+      "paint": {
+        "background-color": "#aed3ea"
+      }
     },
     {
       "id": "earth",
@@ -33,7 +35,21 @@
       "maxzoom": 11,
       "paint": {
         "line-color": "#c9b88a",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 5, 0.4, 8, 0.8, 10, 1.2],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          5,
+          0.4,
+          8,
+          0.8,
+          10,
+          1.2
+        ],
         "line-opacity": 0.7
       }
     },
@@ -42,15 +58,31 @@
       "type": "fill",
       "source": "lm",
       "source-layer": "landcover",
-      "filter": ["match", ["get", "objekttyp"],
-        ["Barr- och blandskog", "Lövskog", "Fjällbjörkskog"], true,
-        false],
+      "filter": [
+        "match",
+        [
+          "get",
+          "objekttyp"
+        ],
+        [
+          "Barr- och blandskog",
+          "Lövskog",
+          "Fjällbjörkskog"
+        ],
+        true,
+        false
+      ],
       "paint": {
         "fill-color": [
           "match",
-          ["get", "objekttyp"],
-          "Lövskog", "#c9e2b5",
-          "Fjällbjörkskog", "#d1e4bd",
+          [
+            "get",
+            "objekttyp"
+          ],
+          "Lövskog",
+          "#c9e2b5",
+          "Fjällbjörkskog",
+          "#d1e4bd",
           "#bcdca7"
         ]
       }
@@ -60,9 +92,19 @@
       "type": "fill",
       "source": "lm",
       "source-layer": "landcover",
-      "filter": ["match", ["get", "objekttyp"],
-        ["Åker", "Fruktodling"], true,
-        false],
+      "filter": [
+        "match",
+        [
+          "get",
+          "objekttyp"
+        ],
+        [
+          "Åker",
+          "Fruktodling"
+        ],
+        true,
+        false
+      ],
       "paint": {
         "fill-color": "#f4ead0"
       }
@@ -72,7 +114,14 @@
       "type": "fill",
       "source": "lm",
       "source-layer": "landcover",
-      "filter": ["==", ["get", "objekttyp"], "Öppen mark"],
+      "filter": [
+        "==",
+        [
+          "get",
+          "objekttyp"
+        ],
+        "Öppen mark"
+      ],
       "paint": {
         "fill-color": "#ede6cd"
       }
@@ -82,9 +131,19 @@
       "type": "fill",
       "source": "lm",
       "source-layer": "landcover",
-      "filter": ["match", ["get", "objekttyp"],
-        ["Kalfjäll", "Ej karterat område"], true,
-        false],
+      "filter": [
+        "match",
+        [
+          "get",
+          "objekttyp"
+        ],
+        [
+          "Kalfjäll",
+          "Ej karterat område"
+        ],
+        true,
+        false
+      ],
       "paint": {
         "fill-color": "#e6e0d1"
       }
@@ -94,7 +153,14 @@
       "type": "fill",
       "source": "lm",
       "source-layer": "landcover",
-      "filter": ["==", ["get", "objekttyp"], "Glaciär"],
+      "filter": [
+        "==",
+        [
+          "get",
+          "objekttyp"
+        ],
+        "Glaciär"
+      ],
       "paint": {
         "fill-color": "#e8f1f5"
       }
@@ -104,16 +170,34 @@
       "type": "fill",
       "source": "lm",
       "source-layer": "landcover",
-      "filter": ["match", ["get", "objekttyp"],
-        ["Låg bebyggelse", "Hög bebyggelse", "Sluten bebyggelse", "Industri- och handelsbebyggelse"], true,
-        false],
+      "filter": [
+        "match",
+        [
+          "get",
+          "objekttyp"
+        ],
+        [
+          "Låg bebyggelse",
+          "Hög bebyggelse",
+          "Sluten bebyggelse",
+          "Industri- och handelsbebyggelse"
+        ],
+        true,
+        false
+      ],
       "paint": {
         "fill-color": [
           "match",
-          ["get", "objekttyp"],
-          "Industri- och handelsbebyggelse", "#e0d8c8",
-          "Hög bebyggelse", "#dccfb6",
-          "Sluten bebyggelse", "#dccfb6",
+          [
+            "get",
+            "objekttyp"
+          ],
+          "Industri- och handelsbebyggelse",
+          "#e0d8c8",
+          "Hög bebyggelse",
+          "#dccfb6",
+          "Sluten bebyggelse",
+          "#dccfb6",
           "#e6dcc4"
         ]
       }
@@ -123,7 +207,14 @@
       "type": "fill",
       "source": "lm",
       "source-layer": "landcover",
-      "filter": ["==", ["get", "objekttyp"], "Torg"],
+      "filter": [
+        "==",
+        [
+          "get",
+          "objekttyp"
+        ],
+        "Torg"
+      ],
       "paint": {
         "fill-color": "#d8d0bd"
       }
@@ -133,9 +224,21 @@
       "type": "fill",
       "source": "lm",
       "source-layer": "landcover",
-      "filter": ["match", ["get", "objekttyp"],
-        ["Sjö", "Hav", "Anlagt vatten", "Vattendragsyta"], true,
-        false],
+      "filter": [
+        "match",
+        [
+          "get",
+          "objekttyp"
+        ],
+        [
+          "Sjö",
+          "Hav",
+          "Anlagt vatten",
+          "Vattendragsyta"
+        ],
+        true,
+        false
+      ],
       "paint": {
         "fill-color": "#9ec8e8"
       }
@@ -148,8 +251,12 @@
       "paint": {
         "fill-color": [
           "match",
-          ["get", "objekttyp"],
-          "Sankmark, våt", "#bcd9c8",
+          [
+            "get",
+            "objekttyp"
+          ],
+          "Sankmark, våt",
+          "#bcd9c8",
           "#cfdfca"
         ],
         "fill-opacity": 0.7
@@ -163,11 +270,18 @@
       "paint": {
         "fill-color": [
           "match",
-          ["get", "objekttyp"],
-          "Idrottsplan", "#d6e8c2",
-          "Rekreation", "#d8e6c4",
-          "Industriområde", "#e0d6c2",
-          "Civilt skjutfält", "#e6dac4",
+          [
+            "get",
+            "objekttyp"
+          ],
+          "Idrottsplan",
+          "#d6e8c2",
+          "Rekreation",
+          "#d8e6c4",
+          "Industriområde",
+          "#e0d6c2",
+          "Civilt skjutfält",
+          "#e6dac4",
           "#e2dec8"
         ],
         "fill-opacity": 0.85
@@ -214,7 +328,23 @@
       "source-layer": "water",
       "paint": {
         "line-color": "#2f86c6",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 8, 0.3, 11, 0.7, 14, 1.4, 16, 2.6]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          8,
+          0.3,
+          11,
+          0.7,
+          14,
+          1.4,
+          16,
+          2.6
+        ]
       }
     },
     {
@@ -224,7 +354,23 @@
       "source-layer": "watercourses",
       "paint": {
         "line-color": "#2f86c6",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 8, 0.4, 11, 0.9, 14, 1.8, 16, 3.0]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          8,
+          0.4,
+          11,
+          0.9,
+          14,
+          1.8,
+          16,
+          3.0
+        ]
       }
     },
     {
@@ -233,7 +379,14 @@
       "source": "lm",
       "source-layer": "contours",
       "minzoom": 12,
-      "filter": ["!=", ["get", "stodkurva"], "Ja"],
+      "filter": [
+        "!=",
+        [
+          "get",
+          "stodkurva"
+        ],
+        "Ja"
+      ],
       "paint": {
         "line-color": "#b87a45",
         "line-width": 0.35,
@@ -246,7 +399,14 @@
       "source": "lm",
       "source-layer": "contours",
       "minzoom": 11,
-      "filter": ["==", ["get", "stodkurva"], "Ja"],
+      "filter": [
+        "==",
+        [
+          "get",
+          "stodkurva"
+        ],
+        "Ja"
+      ],
       "paint": {
         "line-color": "#a0522d",
         "line-width": 0.8,
@@ -260,8 +420,16 @@
       "source-layer": "contour_labels",
       "minzoom": 13,
       "layout": {
-        "text-field": ["to-string", ["get", "karttext"]],
-        "text-font": ["Noto Sans Italic"],
+        "text-field": [
+          "to-string",
+          [
+            "get",
+            "karttext"
+          ]
+        ],
+        "text-font": [
+          "Noto Sans Italic"
+        ],
         "text-size": 10,
         "symbol-placement": "point"
       },
@@ -292,7 +460,10 @@
       "paint": {
         "line-color": "#7a7a7a",
         "line-width": 0.5,
-        "line-dasharray": [2, 2],
+        "line-dasharray": [
+          2,
+          2
+        ],
         "line-opacity": 0.55
       }
     },
@@ -304,7 +475,10 @@
       "paint": {
         "line-color": "#2f86c6",
         "line-width": 0.8,
-        "line-dasharray": [4, 3],
+        "line-dasharray": [
+          4,
+          3
+        ],
         "line-opacity": 0.7
       }
     },
@@ -315,7 +489,21 @@
       "source-layer": "rail",
       "paint": {
         "line-color": "#555",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 8, 0.4, 12, 1.0, 15, 2.2]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          8,
+          0.4,
+          12,
+          1.0,
+          15,
+          2.2
+        ]
       }
     },
     {
@@ -326,8 +514,23 @@
       "minzoom": 11,
       "paint": {
         "line-color": "#fff",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 11, 0.4, 15, 1.1],
-        "line-dasharray": [3, 3]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          11,
+          0.4,
+          15,
+          1.1
+        ],
+        "line-dasharray": [
+          3,
+          3
+        ]
       }
     },
     {
@@ -335,11 +538,37 @@
       "type": "line",
       "source": "lm",
       "source-layer": "roads_minor",
-      "filter": ["==", ["get", "objekttyp"], "Traktorväg"],
+      "filter": [
+        "==",
+        [
+          "get",
+          "objekttyp"
+        ],
+        "Traktorväg"
+      ],
       "paint": {
         "line-color": "#8a6a40",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.4, 12, 0.7, 14, 1.4, 17, 2.6],
-        "line-dasharray": [6, 2]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          10,
+          0.4,
+          12,
+          0.7,
+          14,
+          1.4,
+          17,
+          2.6
+        ],
+        "line-dasharray": [
+          6,
+          2
+        ]
       }
     },
     {
@@ -347,12 +576,36 @@
       "type": "line",
       "source": "lm",
       "source-layer": "roads_minor",
-      "filter": ["==", ["get", "objekttyp"], "Cykelväg"],
+      "filter": [
+        "==",
+        [
+          "get",
+          "objekttyp"
+        ],
+        "Cykelväg"
+      ],
       "minzoom": 11,
       "paint": {
         "line-color": "#4a7a3a",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 11, 0.4, 14, 1.0, 17, 2.0],
-        "line-dasharray": [4, 2]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          11,
+          0.4,
+          14,
+          1.0,
+          17,
+          2.0
+        ],
+        "line-dasharray": [
+          4,
+          2
+        ]
       }
     },
     {
@@ -360,12 +613,36 @@
       "type": "line",
       "source": "lm",
       "source-layer": "roads_minor",
-      "filter": ["==", ["get", "objekttyp"], "Parkväg"],
+      "filter": [
+        "==",
+        [
+          "get",
+          "objekttyp"
+        ],
+        "Parkväg"
+      ],
       "minzoom": 12,
       "paint": {
         "line-color": "#9a9a9a",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 12, 0.3, 14, 0.7, 17, 1.3],
-        "line-dasharray": [3, 1.5]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          12,
+          0.3,
+          14,
+          0.7,
+          17,
+          1.3
+        ],
+        "line-dasharray": [
+          3,
+          1.5
+        ]
       }
     },
     {
@@ -373,12 +650,36 @@
       "type": "line",
       "source": "lm",
       "source-layer": "roads_minor",
-      "filter": ["==", ["get", "objekttyp"], "Gångstig"],
+      "filter": [
+        "==",
+        [
+          "get",
+          "objekttyp"
+        ],
+        "Gångstig"
+      ],
       "minzoom": 12,
       "paint": {
         "line-color": "#a04020",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 12, 0.3, 14, 0.7, 17, 1.4],
-        "line-dasharray": [2, 2],
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          12,
+          0.3,
+          14,
+          0.7,
+          17,
+          1.4
+        ],
+        "line-dasharray": [
+          2,
+          2
+        ],
         "line-opacity": 0.9
       }
     },
@@ -387,12 +688,36 @@
       "type": "line",
       "source": "lm",
       "source-layer": "roads_minor",
-      "filter": ["==", ["get", "objekttyp"], "Elljusspår"],
+      "filter": [
+        "==",
+        [
+          "get",
+          "objekttyp"
+        ],
+        "Elljusspår"
+      ],
       "minzoom": 12,
       "paint": {
         "line-color": "#9c4f8f",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 12, 0.4, 14, 0.9, 17, 1.6],
-        "line-dasharray": [1.5, 1.5]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          12,
+          0.4,
+          14,
+          0.9,
+          17,
+          1.6
+        ],
+        "line-dasharray": [
+          1.5,
+          1.5
+        ]
       }
     },
     {
@@ -400,11 +725,40 @@
       "type": "line",
       "source": "lm",
       "source-layer": "roads_minor",
-      "filter": ["match", ["get", "objekttyp"], ["Vandringsled", "Vandrings- och vinterled"], true, false],
+      "filter": [
+        "match",
+        [
+          "get",
+          "objekttyp"
+        ],
+        [
+          "Vandringsled",
+          "Vandrings- och vinterled"
+        ],
+        true,
+        false
+      ],
       "paint": {
         "line-color": "#c2331a",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 10, 0.5, 13, 1.2, 17, 2.4],
-        "line-dasharray": [5, 2]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          10,
+          0.5,
+          13,
+          1.2,
+          17,
+          2.4
+        ],
+        "line-dasharray": [
+          5,
+          2
+        ]
       }
     },
     {
@@ -414,8 +768,25 @@
       "source-layer": "trails",
       "paint": {
         "line-color": "#c2331a",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 9, 0.5, 13, 1.2, 17, 2.4],
-        "line-dasharray": [3, 2]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          9,
+          0.5,
+          13,
+          1.2,
+          17,
+          2.4
+        ],
+        "line-dasharray": [
+          3,
+          2
+        ]
       }
     },
     {
@@ -423,18 +794,46 @@
       "type": "line",
       "source": "lm",
       "source-layer": "roads",
-      "filter": ["match", ["get", "objekttyp"],
-        ["Motorväg", "Motortrafikled", "Mötesfri väg", "Landsväg", "Övergripande länk", "Huvudgata", "Infartsväg/Utfartsväg", "Lokalgata stor", "Landsväg liten"], true,
-        false],
+      "filter": [
+        "match",
+        [
+          "get",
+          "objekttyp"
+        ],
+        [
+          "Motorväg",
+          "Motortrafikled",
+          "Mötesfri väg",
+          "Landsväg",
+          "Övergripande länk",
+          "Huvudgata",
+          "Infartsväg/Utfartsväg",
+          "Lokalgata stor",
+          "Landsväg liten"
+        ],
+        true,
+        false
+      ],
       "paint": {
         "line-color": "#7a6243",
         "line-width": [
-          "interpolate", ["linear"], ["zoom"],
-          8, 0.8,
-          10, 1.4,
-          13, 3.4,
-          15, 6.0,
-          17, 10.0
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          8,
+          0.8,
+          10,
+          1.4,
+          13,
+          3.4,
+          15,
+          6.0,
+          17,
+          10.0
         ]
       }
     },
@@ -443,13 +842,41 @@
       "type": "line",
       "source": "lm",
       "source-layer": "roads",
-      "filter": ["match", ["get", "objekttyp"],
-        ["Småväg enkel standard", "Småväg", "Lokalgata liten", "Kvartersväg", "Leveransväg", "Parkeringsområdesväg"], true,
-        false],
+      "filter": [
+        "match",
+        [
+          "get",
+          "objekttyp"
+        ],
+        [
+          "Småväg enkel standard",
+          "Småväg",
+          "Lokalgata liten",
+          "Kvartersväg",
+          "Leveransväg",
+          "Parkeringsområdesväg"
+        ],
+        true,
+        false
+      ],
       "minzoom": 11,
       "paint": {
         "line-color": "#ffffff",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 11, 0.4, 14, 1.2, 17, 3.0]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          11,
+          0.4,
+          14,
+          1.2,
+          17,
+          3.0
+        ]
       }
     },
     {
@@ -457,27 +884,75 @@
       "type": "line",
       "source": "lm",
       "source-layer": "roads",
-      "filter": ["match", ["get", "objekttyp"],
-        ["Motorväg", "Motortrafikled", "Mötesfri väg", "Landsväg", "Övergripande länk", "Huvudgata", "Infartsväg/Utfartsväg", "Lokalgata stor", "Landsväg liten"], true,
-        false],
+      "filter": [
+        "match",
+        [
+          "get",
+          "objekttyp"
+        ],
+        [
+          "Motorväg",
+          "Motortrafikled",
+          "Mötesfri väg",
+          "Landsväg",
+          "Övergripande länk",
+          "Huvudgata",
+          "Infartsväg/Utfartsväg",
+          "Lokalgata stor",
+          "Landsväg liten"
+        ],
+        true,
+        false
+      ],
       "paint": {
         "line-color": [
           "match",
-          ["get", "objekttyp"],
-          "Motorväg", "#f4a23c",
-          ["Motortrafikled", "Mötesfri väg"], "#f7c45f",
-          ["Landsväg", "Övergripande länk"], "#fbd98a",
-          ["Huvudgata", "Lokalgata stor"], "#ffe9b3",
-          ["Landsväg liten", "Infartsväg/Utfartsväg"], "#fff3cf",
+          [
+            "get",
+            "objekttyp"
+          ],
+          "Motorväg",
+          "#f4a23c",
+          [
+            "Motortrafikled",
+            "Mötesfri väg"
+          ],
+          "#f7c45f",
+          [
+            "Landsväg",
+            "Övergripande länk"
+          ],
+          "#fbd98a",
+          [
+            "Huvudgata",
+            "Lokalgata stor"
+          ],
+          "#ffe9b3",
+          [
+            "Landsväg liten",
+            "Infartsväg/Utfartsväg"
+          ],
+          "#fff3cf",
           "#ffffff"
         ],
         "line-width": [
-          "interpolate", ["linear"], ["zoom"],
-          8, 0.4,
-          10, 0.9,
-          13, 2.4,
-          15, 4.4,
-          17, 7.8
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          8,
+          0.4,
+          10,
+          0.9,
+          13,
+          2.4,
+          15,
+          4.4,
+          17,
+          7.8
         ]
       }
     },
@@ -488,7 +963,21 @@
       "source-layer": "aeroway_runway",
       "paint": {
         "line-color": "#555",
-        "line-width": ["interpolate", ["linear"], ["zoom"], 10, 1.0, 14, 3.5, 17, 8.0]
+        "line-width": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          10,
+          1.0,
+          14,
+          3.5,
+          17,
+          8.0
+        ]
       }
     },
     {
@@ -499,19 +988,90 @@
       "minzoom": 8,
       "filter": [
         "all",
-        ["has", "text"],
-        [">=", ["to-number", ["get", "thojd"], 0], 14]
+        [
+          "has",
+          "text"
+        ],
+        [
+          ">=",
+          [
+            "to-number",
+            [
+              "get",
+              "thojd"
+            ],
+            0
+          ],
+          14
+        ]
       ],
       "layout": {
-        "text-field": ["to-string", ["get", "text"]],
-        "text-font": ["Noto Sans Regular"],
-        "text-size": [
-          "interpolate", ["linear"], ["zoom"],
-          8, ["*", ["to-number", ["get", "thojd"], 12], 0.55],
-          12, ["*", ["to-number", ["get", "thojd"], 12], 0.85],
-          15, ["*", ["to-number", ["get", "thojd"], 12], 1.1]
+        "text-field": [
+          "to-string",
+          [
+            "get",
+            "text"
+          ]
         ],
-        "text-rotate": ["to-number", ["get", "trikt"], 0],
+        "text-font": [
+          "Noto Sans Regular"
+        ],
+        "text-size": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          8,
+          [
+            "*",
+            [
+              "to-number",
+              [
+                "get",
+                "thojd"
+              ],
+              12
+            ],
+            0.55
+          ],
+          12,
+          [
+            "*",
+            [
+              "to-number",
+              [
+                "get",
+                "thojd"
+              ],
+              12
+            ],
+            0.85
+          ],
+          15,
+          [
+            "*",
+            [
+              "to-number",
+              [
+                "get",
+                "thojd"
+              ],
+              12
+            ],
+            1.1
+          ]
+        ],
+        "text-rotate": [
+          "to-number",
+          [
+            "get",
+            "trikt"
+          ],
+          0
+        ],
         "text-allow-overlap": false,
         "text-padding": 4,
         "symbol-placement": "point"
@@ -530,20 +1090,102 @@
       "minzoom": 11,
       "filter": [
         "all",
-        ["has", "text"],
-        [">=", ["to-number", ["get", "thojd"], 0], 10],
-        ["<", ["to-number", ["get", "thojd"], 0], 14]
+        [
+          "has",
+          "text"
+        ],
+        [
+          ">=",
+          [
+            "to-number",
+            [
+              "get",
+              "thojd"
+            ],
+            0
+          ],
+          10
+        ],
+        [
+          "<",
+          [
+            "to-number",
+            [
+              "get",
+              "thojd"
+            ],
+            0
+          ],
+          14
+        ]
       ],
       "layout": {
-        "text-field": ["to-string", ["get", "text"]],
-        "text-font": ["Noto Sans Regular"],
-        "text-size": [
-          "interpolate", ["linear"], ["zoom"],
-          11, ["*", ["to-number", ["get", "thojd"], 10], 0.7],
-          14, ["*", ["to-number", ["get", "thojd"], 10], 1.0],
-          17, ["*", ["to-number", ["get", "thojd"], 10], 1.3]
+        "text-field": [
+          "to-string",
+          [
+            "get",
+            "text"
+          ]
         ],
-        "text-rotate": ["to-number", ["get", "trikt"], 0],
+        "text-font": [
+          "Noto Sans Regular"
+        ],
+        "text-size": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          11,
+          [
+            "*",
+            [
+              "to-number",
+              [
+                "get",
+                "thojd"
+              ],
+              10
+            ],
+            0.7
+          ],
+          14,
+          [
+            "*",
+            [
+              "to-number",
+              [
+                "get",
+                "thojd"
+              ],
+              10
+            ],
+            1.0
+          ],
+          17,
+          [
+            "*",
+            [
+              "to-number",
+              [
+                "get",
+                "thojd"
+              ],
+              10
+            ],
+            1.3
+          ]
+        ],
+        "text-rotate": [
+          "to-number",
+          [
+            "get",
+            "trikt"
+          ],
+          0
+        ],
         "text-allow-overlap": false,
         "text-padding": 3,
         "symbol-placement": "point"
@@ -562,18 +1204,85 @@
       "minzoom": 13,
       "filter": [
         "all",
-        ["has", "text"],
-        ["<", ["to-number", ["get", "thojd"], 0], 10]
+        [
+          "has",
+          "text"
+        ],
+        [
+          "<",
+          [
+            "to-number",
+            [
+              "get",
+              "thojd"
+            ],
+            0
+          ],
+          10
+        ]
       ],
       "layout": {
-        "text-field": ["to-string", ["get", "text"]],
-        "text-font": ["Noto Sans Regular"],
-        "text-size": [
-          "interpolate", ["linear"], ["zoom"],
-          13, ["max", 8, ["*", ["to-number", ["get", "thojd"], 8], 0.9]],
-          17, ["max", 10, ["*", ["to-number", ["get", "thojd"], 8], 1.3]]
+        "text-field": [
+          "to-string",
+          [
+            "get",
+            "text"
+          ]
         ],
-        "text-rotate": ["to-number", ["get", "trikt"], 0],
+        "text-font": [
+          "Noto Sans Regular"
+        ],
+        "text-size": [
+          "interpolate",
+          [
+            "linear"
+          ],
+          [
+            "zoom"
+          ],
+          13,
+          [
+            "max",
+            8,
+            [
+              "*",
+              [
+                "to-number",
+                [
+                  "get",
+                  "thojd"
+                ],
+                8
+              ],
+              0.9
+            ]
+          ],
+          17,
+          [
+            "max",
+            10,
+            [
+              "*",
+              [
+                "to-number",
+                [
+                  "get",
+                  "thojd"
+                ],
+                8
+              ],
+              1.3
+            ]
+          ]
+        ],
+        "text-rotate": [
+          "to-number",
+          [
+            "get",
+            "trikt"
+          ],
+          0
+        ],
         "text-allow-overlap": false,
         "text-padding": 2,
         "symbol-placement": "point"
