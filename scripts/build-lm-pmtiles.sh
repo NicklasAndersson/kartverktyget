@@ -241,6 +241,7 @@ if stage_needs_rebuild "join" "$MERGED_MBTILES"; then
   rm -f "$MERGED_MBTILES"
   tile-join -o "$MERGED_MBTILES" \
     --no-tile-compression \
+    --no-tile-size-limit \
     --attribution "© Lantmäteriet (CC BY 4.0)" \
     --name "Kartvertyget – Lantmäteriet Topografi 10" \
     "$MBTILES_DIR"/*.mbtiles
