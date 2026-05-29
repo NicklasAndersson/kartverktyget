@@ -30,7 +30,7 @@ if [[ -f .env ]]; then
   set -a; source .env; set +a
 fi
 
-SRC="${1:-data/sweden-lm.pmtiles}"
+SRC="data/sweden-lm.pmtiles"
 WAIT=0
 CHECK_ONLY=0
 DRY_RUN=0
@@ -116,7 +116,7 @@ if [[ -n "$REMOTE_INFO" ]]; then
   echo "   befintlig: $REMOTE_SIZE bytes, $REMOTE_MTIME"
   if [[ "$REMOTE_SIZE" == "$SRC_SIZE" ]]; then
     echo "   VARNING: samma storlek som lokal fil — kanske redan uppladdad."
-    echo "           kör med --dry-run=0 för att tvinga ny upload."
+    echo "           ladda upp ändå utan att ange --dry-run."
   fi
 else
   echo "   objektet finns inte ännu"

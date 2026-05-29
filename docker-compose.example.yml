@@ -6,7 +6,7 @@ services:
   # Variant A — helt lokal: peka ut .pmtiles-filer i ./data/
   # ---------------------------------------------------------------------------
   kvg:
-    image: ghcr.io/nicklas/kartvertyget:latest    # eller "build: ."
+    image: ghcr.io/nicklasandersson/kartverktyget:latest    # eller "build: ."
     ports:
       - "8080:8080"
     volumes:
@@ -26,7 +26,7 @@ services:
   # containern och läcker aldrig till klienten.
   # ---------------------------------------------------------------------------
   # kvg:
-  #   image: ghcr.io/nicklas/kartvertyget:latest
+  #   image: ghcr.io/nicklasandersson/kartverktyget:latest
   #   ports: ["8080:8080"]
   #   environment:
   #     PMTILES_OSM_URL: https://private.example.com/sweden-osm.pmtiles
@@ -38,7 +38,7 @@ services:
   # Variant C — publik bucket (URL OK att exponera, ingen auth)
   # ---------------------------------------------------------------------------
   # kvg:
-  #   image: ghcr.io/nicklas/kartvertyget:latest
+  #   image: ghcr.io/nicklasandersson/kartverktyget:latest
   #   ports: ["8080:8080"]
   #   environment:
   #     PMTILES_OSM_URL: https://kartverktyget.s3.eu-central-003.backblazeb2.com/sweden-osm.pmtiles

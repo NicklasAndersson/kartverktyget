@@ -27,7 +27,10 @@ Dagens flöde drivs av två skript:
 
 ### Servern
 - Ubuntu/Debian 22.04+ (eller annan distro där `apt-get` finns)
-- Minst **40 GB** ledig disk (rådata 11 GB + stage 15–20 GB + output 8–12 GB)
+- Minst **200 GB** ledig disk — verklig peak-användning:
+  rådata 11 GB + geojsonl ~55 GB + per-lager mbtiles ~37 GB +
+  sammanslagen mbtiles ~33 GB + TMPDIR under pmtiles-konvertering ~33 GB +
+  output pmtiles ~19 GB ≈ 188 GB totalt
 - 4 GB RAM är minimum, 8 GB+ rekommenderas (tippecanoe stora lager)
 - Root-access via SSH-nyckel
 - Internet-access (för `apt-get` + GitHub-nedladdning av `pmtiles` CLI)
@@ -137,11 +140,22 @@ Giltiga steg: `unzip`, `geojson`, `mvt`, `join`, `pmtiles`.
 
 ### Diskbrist
 
-Om `df -h /` på servern visar mindre än ~40 GB ledigt: rensa gamla stage-
-filer manuellt.
+**`/tmp` är ofta tmpfs (RAM-disk).** `pmtiles convert` skriver en temporärfil
+som är lika stor som källfilen (~33 GB). Om `/tmp` är en tmpfs på t.ex. 16 GB
+misslyckas konverteringen med *"no space left on device"* trots att `/` har
+gott om plats. Skriptet sätter `TMPDIR` till `data/stage/lm/tmp` (på
+huvuddisken) för att undvika detta.
+
+Kontrollera diskanvändning med:
 
 ```bash
+ssh root@$LM_REMOTE_HOST 'df -h / /tmp'
 ssh root@$LM_REMOTE_HOST 'du -sh /root/kvg/data/stage/lm/* | sort -h'
+```
+
+Om `/`-disken visar mindre än ~40 GB ledigt: rensa gamla stage-filer manuellt.
+
+```bash
 ssh root@$LM_REMOTE_HOST 'rm -rf /root/kvg/data/stage/lm'
 ```
 
@@ -207,8 +221,8 @@ fälten `B2_KEY_ID`, `B2_APPLICATION_KEY`, `B2_BUCKET`, `B2_ENDPOINT`,
 `B2_REGION`). Skapa en bucket-specifik application key i B2-konsolen med
 write-access mot just `kartverktyget`.
 
-> **OBS stavning:** bucket-namnet är `kartverktyget` (med *rk*), inte
-> `kartvertyget` (som repot heter). Fel stavning ger `403`/`404` på upload.
+> **OBS stavning:** bucket-namnet är `kartverktyget` — samma stavning som
+> GitHub-repot. Fel stavning ger `403`/`404` på upload.
 
 ```bash
 # Variant A: ladda upp från servern (snabbast — slipper 30 GB nedladdning)

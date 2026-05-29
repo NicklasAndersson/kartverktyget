@@ -255,7 +255,12 @@ fi
 echo ">> [5/5] Konverterar till PMTiles -> $OUT_PMTILES"
 if stage_needs_rebuild "pmtiles" "$OUT_PMTILES"; then
   rm -f "$OUT_PMTILES"
-  pmtiles convert "$MERGED_MBTILES" "$OUT_PMTILES"
+  # /tmp är ofta tmpfs (RAM-disk, t.ex. 16 GB) — för litet för en 30+ GB mbtiles.
+  # Peka TMPDIR mot huvuddisken så att mellanfilen ryms.
+  PMTILES_TMP="$STAGE/tmp"
+  mkdir -p "$PMTILES_TMP"
+  TMPDIR="$PMTILES_TMP" pmtiles convert "$MERGED_MBTILES" "$OUT_PMTILES"
+  rm -rf "$PMTILES_TMP"
   pmtiles show "$OUT_PMTILES" | sed -n '1,40p'
 else
   echo "   (skip) $OUT_PMTILES finns redan"

@@ -100,7 +100,7 @@ credentials aldrig läcker till browsern) eller publik fjärr-URL (direkt).
 docker run --rm -p 8080:8080 \
   -v "$PWD/data:/data:ro" \
   -e PMTILES_OSM_FILE=/data/sweden-osm.pmtiles \
-  ghcr.io/nicklas/kartvertyget:latest
+  ghcr.io/nicklasandersson/kartverktyget:latest
 ```
 
 Full referens (alla lägen, env-vars, endpoints, reverse-proxy): [docs/docker.md](docs/docker.md).

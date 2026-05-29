@@ -10,7 +10,7 @@ PMTiles-proxy på samma port (default 8080).
 docker run --rm -p 8080:8080 \
   -v "$PWD/data:/data:ro" \
   -e PMTILES_OSM_FILE=/data/sweden-osm.pmtiles \
-  ghcr.io/nicklas/kartvertyget:latest
+  ghcr.io/nicklasandersson/kartverktyget:latest
 ```
 
 Öppna `http://localhost:8080`. PDF-rendering (Playwright/Chromium) fungerar
@@ -66,7 +66,7 @@ docker run --rm -p 8080:8080 \
   -e PMTILES_LM_FILE=/data/sweden-lm.pmtiles \
   -e PMTILES_OSM_URL=https://kartverktyget.s3.eu-central-003.backblazeb2.com/sweden-osm.pmtiles \
   -e PMTILES_OSM_PUBLIC=true \
-  ghcr.io/nicklas/kartvertyget:latest
+  ghcr.io/nicklasandersson/kartverktyget:latest
 ```
 
 ### Exempel: privat fjärrkälla med Bearer-token
@@ -75,7 +75,7 @@ docker run --rm -p 8080:8080 \
 docker run --rm -p 8080:8080 \
   -e PMTILES_OSM_URL=https://tiles.example.com/sweden.pmtiles \
   -e PMTILES_OSM_AUTH="Bearer $MY_TOKEN" \
-  ghcr.io/nicklas/kartvertyget:latest
+  ghcr.io/nicklasandersson/kartverktyget:latest
 ```
 
 Browsern hämtar `pmtiles://http://localhost:8080/pmtiles/osm` — `MY_TOKEN`
