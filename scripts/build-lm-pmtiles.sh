@@ -92,7 +92,7 @@ mkdir -p "$GPKG_DIR" "$GEOJSON_DIR" "$MBTILES_DIR" "data"
 # fyllningen i style:n. mark/sankmark har 3,5M polygoner — z5 OOMmar tippecanoe
 # (varje tile måste hålla nästan hela landet i minnet samtidigt).
 read -r -d '' LAYER_SPECS <<'SPECS' || true
-earth|mark_sverige|mark|5|10|--exclude-all --coalesce --simplification=12 --maximum-tile-bytes=300000 --drop-densest-as-needed
+earth|mark_sverige|mark|5|10|--exclude-all --coalesce --reorder -D8 --simplification=20
 landcover|mark_sverige|mark|9|15|--coalesce-smallest-as-needed --maximum-tile-bytes=800000
 landcover_wet|mark_sverige|sankmark|9|15|--coalesce-smallest-as-needed
 land_edges|mark_sverige|markkantlinje|11|15|--drop-densest-as-needed

@@ -5,7 +5,7 @@
   "sources": {
     "lm": {
       "type": "vector",
-      "url": "pmtiles://https://example.com/sweden-lm.pmtiles",
+      "url": "pmtiles://https://kartverktyget.s3.eu-central-003.backblazeb2.com/sweden-lm.pmtiles",
       "attribution": "© Lantmäteriet (CC BY 4.0)"
     }
   },
@@ -51,6 +51,17 @@
           1.2
         ],
         "line-opacity": 0.7
+      }
+    },
+    {
+      "id": "landcover-base",
+      "type": "fill",
+      "source": "lm",
+      "source-layer": "landcover",
+      "minzoom": 9,
+      "paint": {
+        "fill-color": "#efe6cf",
+        "fill-antialias": false
       }
     },
     {
