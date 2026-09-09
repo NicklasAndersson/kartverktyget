@@ -60,7 +60,11 @@ export async function renderMapPng(args: RenderArgs): Promise<Uint8Array> {
     viewport: { width: args.widthPx, height: args.heightPx },
     deviceScaleFactor: 1,
   });
-  const pageUrl = process.env.RENDER_PAGE_URL ?? 'http://127.0.0.1:8787/render-page/index.html';
+  // Samma port som servern faktiskt lyssnar på (8080 i containern) – inte
+  // dev-defaulten. Jfr engine.ts som redan läser PORT.
+  const apiPort = process.env.PORT ?? '8787';
+  const pageUrl =
+    process.env.RENDER_PAGE_URL ?? `http://127.0.0.1:${apiPort}/render-page/index.html`;
   const page = await ctx.newPage();
   try {
     await page.goto(pageUrl, { waitUntil: 'domcontentloaded', timeout: 15000 });
