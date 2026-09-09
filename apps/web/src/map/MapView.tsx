@@ -54,6 +54,8 @@ export function MapView({ onCursor }: { onCursor: (s: string) => void }) {
   const mgrsMode = useStore((s) => s.mgrsMode);
   const mgrsGridSizeBias = useStore((s) => s.mgrsGridSizeBias);
   const overlays = useStore((s) => s.overlays);
+  const trackColor = useStore((s) => s.trackColor);
+  const trackWidth = useStore((s) => s.trackWidth);
   const atlas = useStore((s) => s.atlas);
   const drawMode = useStore((s) => s.drawMode);
   const iconName = useStore((s) => s.iconName);
@@ -138,6 +140,14 @@ export function MapView({ onCursor }: { onCursor: (s: string) => void }) {
     if (!map || !map.getSource('kvg-tracks')) return;
     updateOverlays(map, overlays);
   }, [overlays]);
+
+  // Spårfärg/-bredd: sätt om paint direkt, ingen omladdning av stilen behövs.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !map.getLayer('kvg-tracks-line')) return;
+    map.setPaintProperty('kvg-tracks-line', 'line-color', trackColor);
+    map.setPaintProperty('kvg-tracks-line', 'line-width', trackWidth);
+  }, [trackColor, trackWidth]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -543,7 +553,11 @@ function setupOverlayLayers(map: MLMap) {
       id: 'kvg-tracks-line',
       type: 'line',
       source: 'kvg-tracks',
-      paint: { 'line-color': '#c0392b', 'line-width': 2.5, 'line-opacity': 0.9 },
+      paint: {
+        'line-color': useStore.getState().trackColor,
+        'line-width': useStore.getState().trackWidth,
+        'line-opacity': 0.9,
+      },
     });
   }
   if (!map.getSource('kvg-waypoints')) {

@@ -19,6 +19,8 @@ function makeAtlas(pages: AtlasSpec['pages']): AtlasSpec {
     mgrsMode: 'full',
     mgrsGridSizeBias: 0,
     contours: false,
+  trackColor: '#c0392b',
+  trackWidth: 2.5,
     pages,
   };
 }

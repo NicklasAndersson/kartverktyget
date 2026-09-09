@@ -1,7 +1,16 @@
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import type { FeatureCollection, LineString, Point } from 'geojson';
-import { DEFAULT_LABEL_SIZE, DEFAULT_ROAD_SIZE, normalizeLabelSize, normalizeRoadSize } from '@kvg/shared';
+import {
+  DEFAULT_LABEL_SIZE,
+  DEFAULT_ROAD_SIZE,
+  DEFAULT_TRACK_COLOR,
+  DEFAULT_TRACK_WIDTH,
+  normalizeLabelSize,
+  normalizeRoadSize,
+  normalizeTrackColor,
+  normalizeTrackWidth,
+} from '@kvg/shared';
 import type { AtlasSpec, LabelSize, MapSource, Overlays, PageSpec, StyleId } from '@kvg/shared';
 import { DEFAULT_MAP_SOURCE } from '@kvg/shared';
 
@@ -34,6 +43,10 @@ interface AppState {
   setMgrsMode: (mode: AtlasSpec['mgrsMode']) => void;
   mgrsGridSizeBias: -1 | 0 | 1;
   setMgrsGridSizeBias: (bias: AppState['mgrsGridSizeBias']) => void;
+  trackColor: string;
+  setTrackColor: (color: string) => void;
+  trackWidth: number;
+  setTrackWidth: (width: number) => void;
 
   overlays: Overlays;
   addTrack: (line: LineString, props?: Record<string, unknown>) => void;
@@ -73,6 +86,8 @@ const initialAtlas: AtlasSpec = {
   mgrsMode: 'full',
   mgrsGridSizeBias: 0,
   contours: false,
+  trackColor: DEFAULT_TRACK_COLOR,
+  trackWidth: DEFAULT_TRACK_WIDTH,
   pages: [],
 };
 
@@ -108,6 +123,18 @@ export const useStore = create<AppState>()(
       mgrsGridSizeBias: initialAtlas.mgrsGridSizeBias,
       setMgrsGridSizeBias: (mgrsGridSizeBias) =>
         set((s) => ({ mgrsGridSizeBias, atlas: { ...s.atlas, mgrsGridSizeBias } })),
+      trackColor: initialAtlas.trackColor,
+      setTrackColor: (color) =>
+        set((s) => {
+          const trackColor = normalizeTrackColor(color);
+          return { trackColor, atlas: { ...s.atlas, trackColor } };
+        }),
+      trackWidth: initialAtlas.trackWidth,
+      setTrackWidth: (width) =>
+        set((s) => {
+          const trackWidth = normalizeTrackWidth(width);
+          return { trackWidth, atlas: { ...s.atlas, trackWidth } };
+        }),
 
       overlays: { tracks: emptyTracks, waypoints: emptyWaypoints },
       addTrack: (line, props = {}) =>
@@ -203,6 +230,8 @@ function syncAtlasState(atlas: AtlasSpec) {
     mgrsGrid: atlas.mgrsGrid,
     mgrsMode: atlas.mgrsMode,
     mgrsGridSizeBias: atlas.mgrsGridSizeBias,
+    trackColor: atlas.trackColor,
+    trackWidth: atlas.trackWidth,
   };
 }
 
@@ -213,6 +242,8 @@ function normalizeAtlas(atlas: Partial<AtlasSpec> | undefined): AtlasSpec {
     mapSource: normalizeMapSource(atlas?.mapSource),
     labelSize: normalizeLabelSize(atlas?.labelSize),
     roadSize: normalizeRoadSize(atlas?.roadSize),
+    trackColor: normalizeTrackColor(atlas?.trackColor),
+    trackWidth: normalizeTrackWidth(atlas?.trackWidth),
     pages: Array.isArray(atlas?.pages) ? atlas.pages : initialAtlas.pages,
   };
 }

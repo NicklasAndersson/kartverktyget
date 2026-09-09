@@ -69,6 +69,10 @@ export const DEFAULT_ROAD_SIZE = ROAD_SIZE_FACTORS.medium;
 export const LABEL_SIZE_RANGE = { min: LABEL_SIZE_FACTORS.small, max: 4.8, step: 0.05 } as const;
 export const ROAD_SIZE_RANGE = { min: ROAD_SIZE_FACTORS.small, max: 4, step: 0.05 } as const;
 
+export const DEFAULT_TRACK_COLOR = '#c0392b';
+export const DEFAULT_TRACK_WIDTH = 2.5;
+export const TRACK_WIDTH_RANGE = { min: 0.5, max: 8, step: 0.5 } as const;
+
 /** Inställningar för en enskild atlas-sida. */
 export interface PageSpec {
   id: string;
@@ -109,6 +113,10 @@ export interface AtlasSpec {
   mgrsGridSizeBias: -1 | 0 | 1;
   /** Visa höjdkurvor (genereras via maplibre-contour). */
   contours: boolean;
+  /** Färg på spår (GPX-importerade och ritade). */
+  trackColor: string;
+  /** Linjebredd på spår – samma värde i preview och PDF. */
+  trackWidth: number;
   pages: PageSpec[];
 }
 
@@ -194,6 +202,17 @@ export function normalizeLabelSize(value: unknown): LabelSize {
 
 export function normalizeRoadSize(value: unknown): LabelSize {
   return normalizeSizeFactor(value, ROAD_SIZE_FACTORS, DEFAULT_ROAD_SIZE, ROAD_SIZE_RANGE.min, ROAD_SIZE_RANGE.max);
+}
+
+/** Endast #rrggbb accepteras – värdet går vidare till MapLibre paint i render-sidan. */
+export function normalizeTrackColor(value: unknown): string {
+  return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value : DEFAULT_TRACK_COLOR;
+}
+
+export function normalizeTrackWidth(value: unknown): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return DEFAULT_TRACK_WIDTH;
+  return Math.min(TRACK_WIDTH_RANGE.max, Math.max(TRACK_WIDTH_RANGE.min, n));
 }
 
 function scaleStyleValue(value: unknown, factor: number): unknown {

@@ -100,7 +100,7 @@
       }
 
       window.kvgRender = async function (args) {
-        const { style, bounds, widthPx, heightPx, overlays, watercourses = true, contours } = args;
+        const { style, bounds, widthPx, heightPx, overlays, watercourses = true, contours, trackColor = '#c0392b', trackWidth = 2.5 } = args;
         document.body.style.width = widthPx + 'px';
         document.body.style.height = heightPx + 'px';
         const el = document.getElementById('map');
@@ -130,7 +130,7 @@
             id: 'kvg-tracks-line',
             type: 'line',
             source: 'kvg-tracks',
-            paint: { 'line-color': '#c0392b', 'line-width': 2.2 },
+            paint: { 'line-color': trackColor, 'line-width': trackWidth },
           });
         }
         if (overlays?.waypoints?.features?.length) {

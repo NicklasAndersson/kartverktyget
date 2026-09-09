@@ -29,6 +29,8 @@ const minimalAtlas: AtlasSpec = {
   mgrsMode: 'full',
   mgrsGridSizeBias: 0,
   contours: false,
+  trackColor: '#c0392b',
+  trackWidth: 2.5,
   pages: [{ id: 'p1', center: [18.0, 59.3] }],
 };
 

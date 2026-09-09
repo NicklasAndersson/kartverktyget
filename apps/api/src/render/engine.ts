@@ -3,6 +3,8 @@ import { dirname, join } from 'node:path';
 import type { FastifyBaseLogger } from 'fastify';
 import {
   PRINT_DPI,
+  normalizeTrackColor,
+  normalizeTrackWidth,
   MM_PER_INCH,
   PAPER_SIZES,
   applyLabelSizeToStyleLayers,
@@ -61,6 +63,8 @@ export async function renderAtlas(req: RenderRequest, log: FastifyBaseLogger): P
       overlays,
       watercourses: atlas.watercourses !== false,
       contours: atlas.contours,
+      trackColor: normalizeTrackColor(atlas.trackColor),
+      trackWidth: normalizeTrackWidth(atlas.trackWidth),
     });
 
     const png = await pdf.embedPng(pngBytes);

@@ -6,8 +6,10 @@ import {
   COMMON_SCALES,
   DEFAULT_LABEL_SIZE,
   DEFAULT_ROAD_SIZE,
+  DEFAULT_TRACK_WIDTH,
   LABEL_SIZE_RANGE,
   ROAD_SIZE_RANGE,
+  TRACK_WIDTH_RANGE,
   pageMetersOnGround,
 } from '@kvg/shared';
 import type { StyleId, Scale, PaperSize, Orientation, MapSource } from '@kvg/shared';
@@ -170,6 +172,10 @@ export function Sidebar() {
   const addTrack = useStore((s) => s.addTrack);
   const addWaypoint = useStore((s) => s.addWaypoint);
   const clearOverlays = useStore((s) => s.clearOverlays);
+  const trackColor = useStore((s) => s.trackColor);
+  const setTrackColor = useStore((s) => s.setTrackColor);
+  const trackWidth = useStore((s) => s.trackWidth);
+  const setTrackWidth = useStore((s) => s.setTrackWidth);
   const overlays = useStore((s) => s.overlays);
   const fileRef = useRef<HTMLInputElement>(null);
   const [pdfLoading, setPdfLoading] = useState(false);
@@ -403,6 +409,19 @@ export function Sidebar() {
           Rensa
         </button>
       </div>
+      <label style={{ marginTop: 8 }}>
+        Spårfärg
+        <input type="color" value={trackColor} onChange={(e) => setTrackColor(e.target.value)} />
+      </label>
+      <SizeControl
+        label="Spårbredd"
+        value={trackWidth}
+        onChange={setTrackWidth}
+        min={TRACK_WIDTH_RANGE.min}
+        max={TRACK_WIDTH_RANGE.max}
+        step={TRACK_WIDTH_RANGE.step}
+        defaultValue={DEFAULT_TRACK_WIDTH}
+      />
 
       <h2>Ikoner</h2>
       <div>

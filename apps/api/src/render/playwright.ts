@@ -9,6 +9,8 @@ interface RenderArgs {
   overlays: Overlays;
   watercourses: boolean;
   contours: boolean;
+  trackColor: string;
+  trackWidth: number;
 }
 
 const RENDER_TIMEOUT_MS = 45_000;
