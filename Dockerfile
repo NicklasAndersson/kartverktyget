@@ -1,9 +1,15 @@
 # syntax=docker/dockerfile:1.7
 
+# Playwright-versionen måste vara identisk i node_modules och i runtime-imagen,
+# annars saknas rätt Chromium-build. Bygget failar om de glider isär (se checken
+# i builder-stagen). Uppgradering: bumpa här OCH i apps/api/package.json.
+ARG PLAYWRIGHT_VERSION=1.60.0
+
 # =============================================================================
 # Stage 1: builder — installerar pnpm-deps och bygger api + web + shared.
 # =============================================================================
 FROM node:22-bookworm-slim AS builder
+ARG PLAYWRIGHT_VERSION
 
 ENV PNPM_HOME=/root/.local/share/pnpm \
     PATH=/root/.local/share/pnpm:$PATH \
@@ -26,6 +32,11 @@ ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
 RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
     pnpm install --frozen-lockfile
 
+# Versionsvakt: fångar drift mellan lockfilen och runtime-imagens Chromium.
+RUN INSTALLED=$(node -p "require('/app/apps/api/node_modules/playwright/package.json').version") \
+ && [ "$INSTALLED" = "$PLAYWRIGHT_VERSION" ] \
+ || { echo "FEL: playwright $INSTALLED i node_modules men imagen är v$PLAYWRIGHT_VERSION-jammy"; exit 1; }
+
 # Källkod
 COPY tsconfig.base.json ./
 COPY apps/api apps/api
@@ -47,7 +58,7 @@ RUN pnpm deploy --filter @kvg/api --prod /tmp/api-deploy --legacy \
 # =============================================================================
 # Stage 2: runtime — Playwright-image (Chromium + system-deps redan inbakat).
 # =============================================================================
-FROM mcr.microsoft.com/playwright:v1.49.0-jammy AS runtime
+FROM mcr.microsoft.com/playwright:v${PLAYWRIGHT_VERSION}-jammy AS runtime
 
 ENV NODE_ENV=production \
     PORT=8080 \
