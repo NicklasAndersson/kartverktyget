@@ -32,9 +32,11 @@ COPY apps/api apps/api
 COPY apps/web apps/web
 COPY packages/shared packages/shared
 
-# Bygg shared först (api+web importerar dist), sedan api (tsc) och web (vite)
-# @kvg/shared exporterar TS-källa direkt (ingen build-step). Bygg api + web.
-RUN pnpm --filter @kvg/api run build \
+# Bygg shared först – api+web importerar @kvg/shared som JS från dist/.
+# (Utan detta hamnar shared/src/index.ts i runtime-imagen och Node kraschar
+# med ERR_UNKNOWN_FILE_EXTENSION.)
+RUN pnpm --filter @kvg/shared run build \
+ && pnpm --filter @kvg/api run build \
  && pnpm --filter @kvg/web run build
 
 # Produktionsberoenden för runtime-imagen (api behöver dem; web är statisk)
