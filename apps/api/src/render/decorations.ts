@@ -61,7 +61,11 @@ export function drawPageDecorations(a: DecoArgs) {
 
   // 4. Toppmarginal: titel och metadata.
   const topY = mapYPt + mapHPt + 14;
-  pdfPage.drawText(`Fältkarta · 1:${atlas.scale.toLocaleString('sv-SE')}`, {
+  // Helvetica (WinAnsi) kan inte koda t.ex. emoji – pdf-lib kastar då, så
+  // allt utanför Latin-1 rensas bort.
+  const title = (atlas.title ?? 'Fältkarta').replace(/[^\x20-\x7E\xA0-\xFF]/g, '').trim().slice(0, 80);
+  const titleLine = `${title ? `${title} · ` : ''}1:${atlas.scale.toLocaleString('sv-SE')}`;
+  pdfPage.drawText(titleLine, {
     x: mapXPt,
     y: topY,
     size: 10,
@@ -70,7 +74,7 @@ export function drawPageDecorations(a: DecoArgs) {
   });
   const utmLabel = `UTM Zone ${zoneNum}${zoneLetter}  ·  WGS84`;
   pdfPage.drawText(utmLabel, {
-    x: mapXPt + 180,
+    x: mapXPt + Math.max(180, fontBold.widthOfTextAtSize(titleLine, 10) + 16),
     y: topY,
     size: 8,
     font,
@@ -94,36 +98,26 @@ export function drawPageDecorations(a: DecoArgs) {
     /* ignore */
   }
 
-  // 6. Bottommarginal: datum + sidnr (vänster) och attribution (centrerad).
+  // 6. Bottommarginal: datum + sidnr (vänster).
   // Sidnumret ligger ihop med datumet så högerkanten är fri för norrpilen.
   // Under kantkoordinaterna (som ligger på ~-10,5 pt) men ovanför skalstrecket
-  // på -34 pt – annars skrivs datumraden ovanpå den nedre MGRS-etiketten.
+  // – annars skrivs datumraden ovanpå den nedre MGRS-etiketten.
   const botY = mapYPt - 21;
   const dateStr = new Date().toISOString().slice(0, 10);
   const footerLeft = `${dateStr}  ·  Sida ${pageIndex + 1} / ${totalPages}`;
   pdfPage.drawText(footerLeft, { x: mapXPt, y: botY, size: 7, font, color: rgb(0, 0, 0) });
-  // Endast Lantmäteriets attribution ritas (krävs av CC BY 4.0). OSM-rendering
-  // utelämnas medvetet enligt önskemål.
-  if (atlas.mapSource === 'lm') {
-    const attribution = '© Lantmäteriet (CC BY 4.0)';
-    pdfPage.drawText(attribution, {
-      x: mapXPt + (mapWPt - font.widthOfTextAtSize(attribution, 6)) / 2,
-      y: botY,
-      size: 6,
-      font,
-      color: rgb(0, 0, 0),
-    });
-  }
+  // Attribution ritas medvetet inte (enligt önskemål) – mitten av raden är
+  // fri, så skalstrecket kan ligga i höjd med datumraden.
 
-  // 7. Skalstreck centrerat horisontellt under kartan, en bit under
-  // datum/attribution-raden så det inte överlappar texten.
+  // 7. Skalstreck centrerat horisontellt under kartan, strax under de nedre
+  // MGRS-kantkoordinaterna.
   const scaleTotalM = atlas.scale >= 25000 ? 2000 : 500;
   const scaleWidthPt = ((scaleTotalM * 1000) / atlas.scale) * ptPerMm;
   drawScaleBar({
     pdfPage,
     font,
     x: mapXPt + (mapWPt - scaleWidthPt) / 2,
-    y: mapYPt - 34,
+    y: mapYPt - 24,
     scale: atlas.scale,
     ptPerMm,
   });

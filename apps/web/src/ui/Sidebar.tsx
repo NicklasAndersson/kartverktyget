@@ -530,6 +530,15 @@ export function Sidebar() {
         </select>
       </label>
       <label>
+        Titel
+        <input
+          type="text"
+          maxLength={80}
+          value={atlas.title ?? 'Fältkarta'}
+          onChange={(e) => setAtlas({ ...atlas, title: e.target.value })}
+        />
+      </label>
+      <label>
         Marginal (mm)
         <input
           type="number"
