@@ -158,7 +158,7 @@
       }
 
       window.kvgRender = async function (args) {
-        const { style, bounds, widthPx, heightPx, overlays, watercourses = true, contours, trackColor = '#c0392b', trackWidth = 2.5, trackArrows = false, trackArrowsReversed = false, pxScale = 1 } = args;
+        const { style, bounds, widthPx, heightPx, overlays, watercourses = true, contours, trackColor = '#c0392b', trackWidth = 2.5, trackArrows = false, pxScale = 1 } = args;
         document.body.style.width = widthPx + 'px';
         document.body.style.height = heightPx + 'px';
         const el = document.getElementById('map');
@@ -189,7 +189,7 @@
             id: 'kvg-tracks-line',
             type: 'line',
             source: 'kvg-tracks',
-            paint: { 'line-color': trackColor, 'line-width': trackWidth * pxScale },
+            paint: { 'line-color': ['coalesce', ['get', 'kvgColor'], trackColor], 'line-width': trackWidth * pxScale },
           });
           if (trackArrows) {
             const size = Math.ceil(32 * Math.max(2, pxScale));
@@ -203,10 +203,9 @@
                 'symbol-spacing': 80 * pxScale,
                 'icon-image': 'kvg-arrow',
                 'icon-size': (trackWidth / 4) * pxScale,
-                'icon-rotate': trackArrowsReversed ? 180 : 0,
                 'icon-allow-overlap': true,
               },
-              paint: { 'icon-color': trackColor },
+              paint: { 'icon-color': ['coalesce', ['get', 'kvgColor'], trackColor] },
             });
           }
         }

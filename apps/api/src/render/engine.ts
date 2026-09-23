@@ -71,7 +71,6 @@ export async function renderAtlas(req: RenderRequest, log: FastifyBaseLogger): P
       trackColor: normalizeTrackColor(atlas.trackColor),
       trackWidth: normalizeTrackWidth(atlas.trackWidth),
       trackArrows: atlas.trackArrows === true,
-      trackArrowsReversed: atlas.trackArrowsReversed === true,
       pxScale: PRINT_DPI / CSS_DPI,
     });
 

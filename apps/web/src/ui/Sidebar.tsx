@@ -171,6 +171,9 @@ export function Sidebar() {
   const iconName = useStore((s) => s.iconName);
   const setIconName = useStore((s) => s.setIconName);
   const addTrack = useStore((s) => s.addTrack);
+  const updateTrack = useStore((s) => s.updateTrack);
+  const reverseTrack = useStore((s) => s.reverseTrack);
+  const removeTrack = useStore((s) => s.removeTrack);
   const addWaypoint = useStore((s) => s.addWaypoint);
   const clearOverlays = useStore((s) => s.clearOverlays);
   const trackColor = useStore((s) => s.trackColor);
@@ -411,7 +414,7 @@ export function Sidebar() {
         </button>
       </div>
       <label style={{ marginTop: 8 }}>
-        Spårfärg
+        Spårfärg (standard)
         <input type="color" value={trackColor} onChange={(e) => setTrackColor(e.target.value)} />
       </label>
       <label>
@@ -422,15 +425,7 @@ export function Sidebar() {
         />{' '}
         Riktningspilar
       </label>
-      <label>
-        <input
-          type="checkbox"
-          checked={atlas.trackArrowsReversed === true}
-          disabled={atlas.trackArrows !== true}
-          onChange={(e) => setAtlas({ ...atlas, trackArrowsReversed: e.target.checked })}
-        />{' '}
-        Vänd pilarna
-      </label>
+
       <SizeControl
         label="Spårbredd"
         value={trackWidth}
@@ -440,6 +435,28 @@ export function Sidebar() {
         step={TRACK_WIDTH_RANGE.step}
         defaultValue={DEFAULT_TRACK_WIDTH}
       />
+
+      <ol style={{ fontSize: 12, paddingLeft: 18, marginTop: 8 }}>
+        {overlays.tracks.features.map((f, i) => (
+          <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {typeof f.properties?.name === 'string' ? f.properties.name : `Spår ${i + 1}`}
+            </span>
+            <input
+              type="color"
+              aria-label="Spårets färg"
+              value={typeof f.properties?.kvgColor === 'string' ? f.properties.kvgColor : trackColor}
+              onChange={(e) => updateTrack(i, { kvgColor: e.target.value })}
+            />
+            <button className="secondary" style={{ padding: '2px 6px' }} title="Vänd riktning" onClick={() => reverseTrack(i)}>
+              ⇄
+            </button>
+            <button className="secondary" style={{ padding: '2px 6px' }} onClick={() => removeTrack(i)}>
+              ✕
+            </button>
+          </li>
+        ))}
+      </ol>
 
       <h2>Ikoner och text</h2>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>

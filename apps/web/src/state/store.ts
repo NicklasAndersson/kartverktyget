@@ -54,6 +54,9 @@ interface AppState {
   addTrack: (line: LineString, props?: Record<string, unknown>) => void;
   addWaypoint: (pt: Point, props?: Record<string, unknown>) => void;
   clearOverlays: () => void;
+  updateTrack: (index: number, props: Record<string, unknown>) => void;
+  reverseTrack: (index: number) => void;
+  removeTrack: (index: number) => void;
   clearIcons: () => void;
   removeWaypoint: (index: number) => void;
   updateWaypoint: (index: number, props: Record<string, unknown>) => void;
@@ -162,6 +165,40 @@ export const useStore = create<AppState>()(
               type: 'FeatureCollection',
               features: [...s.overlays.waypoints.features, { type: 'Feature', geometry: pt, properties: props }],
             },
+          },
+        })),
+      updateTrack: (index, props) =>
+        set((s) => ({
+          overlays: {
+            ...s.overlays,
+            tracks: {
+              type: 'FeatureCollection',
+              features: s.overlays.tracks.features.map((f, i) =>
+                i === index ? { ...f, properties: { ...f.properties, ...props } } : f,
+              ),
+            },
+          },
+        })),
+      // Vänder koordinaterna – pilarna följer ritriktningen, så de vänds med.
+      reverseTrack: (index) =>
+        set((s) => ({
+          overlays: {
+            ...s.overlays,
+            tracks: {
+              type: 'FeatureCollection',
+              features: s.overlays.tracks.features.map((f, i) =>
+                i === index && f.geometry.type === 'LineString'
+                  ? { ...f, geometry: { ...f.geometry, coordinates: [...f.geometry.coordinates].reverse() } }
+                  : f,
+              ),
+            },
+          },
+        })),
+      removeTrack: (index) =>
+        set((s) => ({
+          overlays: {
+            ...s.overlays,
+            tracks: { type: 'FeatureCollection', features: s.overlays.tracks.features.filter((_, i) => i !== index) },
           },
         })),
       clearOverlays: () => set({ overlays: { tracks: emptyTracks, waypoints: emptyWaypoints } }),

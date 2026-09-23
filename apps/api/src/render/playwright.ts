@@ -12,7 +12,6 @@ interface RenderArgs {
   trackColor: string;
   trackWidth: number;
   trackArrows: boolean;
-  trackArrowsReversed: boolean;
   /** Skalfaktor för overlay-mått (px är CSS-px, render-ytan är PRINT_DPI). */
   pxScale: number;
 }

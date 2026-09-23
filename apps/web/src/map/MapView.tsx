@@ -57,7 +57,6 @@ export function MapView({ onCursor }: { onCursor: (s: string) => void }) {
   const trackColor = useStore((s) => s.trackColor);
   const trackWidth = useStore((s) => s.trackWidth);
   const trackArrows = useStore((s) => s.atlas.trackArrows === true);
-  const trackArrowsReversed = useStore((s) => s.atlas.trackArrowsReversed === true);
   const atlas = useStore((s) => s.atlas);
   const drawMode = useStore((s) => s.drawMode);
   const iconName = useStore((s) => s.iconName);
@@ -148,13 +147,13 @@ export function MapView({ onCursor }: { onCursor: (s: string) => void }) {
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.getLayer('kvg-tracks-line')) return;
-    map.setPaintProperty('kvg-tracks-line', 'line-color', trackColor);
+    // Spår med egen färg (kvgColor) behåller den, övriga får standardfärgen.
+    map.setPaintProperty('kvg-tracks-line', 'line-color', ['coalesce', ['get', 'kvgColor'], trackColor]);
     map.setPaintProperty('kvg-tracks-line', 'line-width', trackWidth);
-    map.setPaintProperty('kvg-tracks-arrows', 'icon-color', trackColor);
+    map.setPaintProperty('kvg-tracks-arrows', 'icon-color', ['coalesce', ['get', 'kvgColor'], trackColor]);
     map.setLayoutProperty('kvg-tracks-arrows', 'icon-size', trackWidth / 4);
     map.setLayoutProperty('kvg-tracks-arrows', 'visibility', trackArrows ? 'visible' : 'none');
-    map.setLayoutProperty('kvg-tracks-arrows', 'icon-rotate', trackArrowsReversed ? 180 : 0);
-  }, [trackColor, trackWidth, trackArrows, trackArrowsReversed]);
+  }, [trackColor, trackWidth, trackArrows]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -614,7 +613,7 @@ function setupOverlayLayers(map: MLMap) {
       type: 'line',
       source: 'kvg-tracks',
       paint: {
-        'line-color': useStore.getState().trackColor,
+        'line-color': ['coalesce', ['get', 'kvgColor'], useStore.getState().trackColor],
         'line-width': useStore.getState().trackWidth,
         'line-opacity': 0.9,
       },
@@ -631,10 +630,9 @@ function setupOverlayLayers(map: MLMap) {
         'symbol-spacing': 80,
         'icon-image': 'kvg-arrow',
         'icon-size': trackWidth / 4,
-        'icon-rotate': atlas.trackArrowsReversed ? 180 : 0,
         'icon-allow-overlap': true,
       },
-      paint: { 'icon-color': trackColor },
+      paint: { 'icon-color': ['coalesce', ['get', 'kvgColor'], trackColor] },
     });
   }
   if (!map.getSource('kvg-waypoints')) {

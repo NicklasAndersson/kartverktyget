@@ -119,8 +119,6 @@ export interface AtlasSpec {
   trackWidth: number;
   /** Riktningspilar längs spåren (i spårets ritriktning). */
   trackArrows?: boolean;
-  /** Vänd riktningspilarna (mot spårets ritriktning). */
-  trackArrowsReversed?: boolean;
   /** Titel i PDF:ens övre vänstra hörn (standard "Fältkarta"). */
   title?: string;
   pages: PageSpec[];

@@ -95,6 +95,18 @@ describe('store overlays', () => {
     expect(waypoints.features[0]!.properties).toEqual({ name: 'plain wp' });
     expect(tracks.features).toHaveLength(1);
   });
+
+  it('reverseTrack flips only the chosen track, removeTrack drops it', () => {
+    const api = useStore.getState();
+    api.addTrack(line, { name: 'a' });
+    api.addTrack(line, { name: 'b' });
+    api.reverseTrack(1);
+    const tracks = useStore.getState().overlays.tracks.features;
+    expect(tracks[0]!.geometry).toEqual(line);
+    expect((tracks[1]!.geometry as typeof line).coordinates).toEqual([...line.coordinates].reverse());
+    api.removeTrack(0);
+    expect(useStore.getState().overlays.tracks.features.map((f) => f.properties?.name)).toEqual(['b']);
+  });
 });
 
 describe('store pages', () => {
