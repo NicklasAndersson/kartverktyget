@@ -103,9 +103,34 @@
       // MapLibre över dem och PDF:en får tomma punkter.
       // Emojin ritas på en canvas; äldre sparade ikoner har namn istället för emoji.
       const LEGACY_ICONS = { tent: '⛺', fire: '🔥', water: '💧', parking: '🅿️', warning: '⚠️' };
+      // Textruta som bild – samma ritning som textBoxImage i MapView.tsx.
+      function textBoxImage(text, scale) {
+        const ctx = document.createElement('canvas').getContext('2d');
+        const font = `${20 * scale}px sans-serif`;
+        ctx.font = font;
+        const pad = 6 * scale;
+        ctx.canvas.width = Math.ceil(ctx.measureText(text).width + pad * 2);
+        ctx.canvas.height = Math.ceil(20 * scale + pad * 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.strokeStyle = '#222';
+        ctx.lineWidth = 1.5 * scale;
+        ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.strokeRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+        ctx.font = font;
+        ctx.fillStyle = '#111';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, pad, ctx.canvas.height / 2);
+        return ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
+      }
+
       function loadIcons(map, waypoints, pxScale) {
         const size = Math.ceil(32 * Math.max(2, pxScale));
         for (const f of waypoints?.features ?? []) {
+          const text = f?.properties?.text;
+          if (typeof text === 'string' && !map.hasImage('kvgtext:' + text)) {
+            const s = size / 32;
+            map.addImage('kvgtext:' + text, textBoxImage(text, s), { pixelRatio: s });
+          }
           const name = f?.properties?.icon;
           if (typeof name !== 'string' || map.hasImage(name)) continue;
           const ctx = document.createElement('canvas').getContext('2d');
@@ -133,7 +158,7 @@
       }
 
       window.kvgRender = async function (args) {
-        const { style, bounds, widthPx, heightPx, overlays, watercourses = true, contours, trackColor = '#c0392b', trackWidth = 2.5, trackArrows = false, pxScale = 1 } = args;
+        const { style, bounds, widthPx, heightPx, overlays, watercourses = true, contours, trackColor = '#c0392b', trackWidth = 2.5, trackArrows = false, trackArrowsReversed = false, pxScale = 1 } = args;
         document.body.style.width = widthPx + 'px';
         document.body.style.height = heightPx + 'px';
         const el = document.getElementById('map');
@@ -178,6 +203,7 @@
                 'symbol-spacing': 80 * pxScale,
                 'icon-image': 'kvg-arrow',
                 'icon-size': (trackWidth / 4) * pxScale,
+                'icon-rotate': trackArrowsReversed ? 180 : 0,
                 'icon-allow-overlap': true,
               },
               paint: { 'icon-color': trackColor },
@@ -191,7 +217,7 @@
             id: 'kvg-waypoints-circle',
             type: 'circle',
             source: 'kvg-waypoints',
-            filter: ['!', ['has', 'icon']],
+            filter: ['!', ['any', ['has', 'icon'], ['has', 'text']]],
             paint: {
               'circle-radius': 5 * pxScale,
               'circle-color': '#c0392b',
@@ -203,10 +229,10 @@
             id: 'kvg-waypoints-icon',
             type: 'symbol',
             source: 'kvg-waypoints',
-            filter: ['has', 'icon'],
+            filter: ['any', ['has', 'icon'], ['has', 'text']],
             layout: {
-              'icon-image': ['get', 'icon'],
-              'icon-size': 0.6 * pxScale,
+              'icon-image': ['case', ['has', 'text'], ['concat', 'kvgtext:', ['get', 'text']], ['get', 'icon']],
+              'icon-size': ['match', ['get', 'size'], 's', 0.4 * pxScale, 'l', 0.9 * pxScale, 0.6 * pxScale],
               'icon-allow-overlap': true,
             },
           });

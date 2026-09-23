@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { gpx as gpxToGeoJson } from '@tmcw/togeojson';
 import { useStore } from '../state/store.js';
+import type { IconSize } from '../state/store.js';
 import {
   COMMON_SCALES,
   DEFAULT_LABEL_SIZE,
@@ -160,6 +161,9 @@ export function Sidebar() {
   const addPages = useStore((s) => s.addPages);
   const removePage = useStore((s) => s.removePage);
   const removeWaypoint = useStore((s) => s.removeWaypoint);
+  const updateWaypoint = useStore((s) => s.updateWaypoint);
+  const iconSize = useStore((s) => s.iconSize);
+  const setIconSize = useStore((s) => s.setIconSize);
   const clearIcons = useStore((s) => s.clearIcons);
   const clearPages = useStore((s) => s.clearPages);
   const drawMode = useStore((s) => s.drawMode);
@@ -418,6 +422,15 @@ export function Sidebar() {
         />{' '}
         Riktningspilar
       </label>
+      <label>
+        <input
+          type="checkbox"
+          checked={atlas.trackArrowsReversed === true}
+          disabled={atlas.trackArrows !== true}
+          onChange={(e) => setAtlas({ ...atlas, trackArrowsReversed: e.target.checked })}
+        />{' '}
+        Vänd pilarna
+      </label>
       <SizeControl
         label="Spårbredd"
         value={trackWidth}
@@ -428,7 +441,7 @@ export function Sidebar() {
         defaultValue={DEFAULT_TRACK_WIDTH}
       />
 
-      <h2>Ikoner</h2>
+      <h2>Ikoner och text</h2>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
         {EMOJIS.map((emoji) => (
           <button
@@ -451,9 +464,18 @@ export function Sidebar() {
           onChange={(e) => setIconName(e.target.value.trim() || null)}
         />
       </label>
+      <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <button
+          className={drawMode === 'text' ? '' : 'secondary'}
+          onClick={() => setDrawMode(drawMode === 'text' ? 'none' : 'text')}
+        >
+          Textruta
+        </button>
+        <SizeSelect value={iconSize} onChange={setIconSize} />
+      </div>
       <ol style={{ fontSize: 12, paddingLeft: 18, marginTop: 8 }}>
         {overlays.waypoints.features.map((f, i) => {
-          const icon = f.properties?.icon;
+          const icon = f.properties?.icon ?? f.properties?.text;
           if (typeof icon !== 'string' || f.geometry.type !== 'Point') return null;
           const [lng = 0, lat = 0] = f.geometry.coordinates;
           return (
@@ -461,6 +483,7 @@ export function Sidebar() {
               <span>
                 {LEGACY_ICONS[icon] ?? icon} {lat.toFixed(4)}, {lng.toFixed(4)}
               </span>
+              <SizeSelect value={f.properties?.size ?? 'm'} onChange={(size) => updateWaypoint(i, { size })} />
               <button className="secondary" style={{ padding: '2px 6px' }} onClick={() => removeWaypoint(i)}>
                 ✕
               </button>
@@ -468,14 +491,14 @@ export function Sidebar() {
           );
         })}
       </ol>
-      {overlays.waypoints.features.some((f) => f.properties?.icon) && (
+      {overlays.waypoints.features.some((f) => f.properties?.icon || f.properties?.text) && (
         <button
           className="secondary"
           onClick={() => {
-            if (confirm('Ta bort alla ikoner?')) clearIcons();
+            if (confirm('Ta bort alla ikoner och textrutor?')) clearIcons();
           }}
         >
-          Rensa ikoner
+          Rensa ikoner och text
         </button>
       )}
 
@@ -572,5 +595,15 @@ export function Sidebar() {
         </button>
       </div>
     </aside>
+  );
+}
+
+function SizeSelect({ value, onChange }: { value: IconSize; onChange: (size: IconSize) => void }) {
+  return (
+    <select value={value} onChange={(e) => onChange(e.target.value as IconSize)} aria-label="Storlek">
+      <option value="s">Liten</option>
+      <option value="m">Mellan</option>
+      <option value="l">Stor</option>
+    </select>
   );
 }

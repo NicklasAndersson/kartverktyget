@@ -20,6 +20,8 @@ const DEFAULT_MAP_VIEW = { center: [18.0686, 59.3293] as [number, number], zoom:
 
 type MapViewState = typeof DEFAULT_MAP_VIEW;
 
+export type IconSize = 's' | 'm' | 'l';
+
 type PersistedAppState = Pick<AppState, 'atlas' | 'overlays' | 'drawMode' | 'iconName' | 'mapView'>;
 
 interface AppState {
@@ -54,6 +56,7 @@ interface AppState {
   clearOverlays: () => void;
   clearIcons: () => void;
   removeWaypoint: (index: number) => void;
+  updateWaypoint: (index: number, props: Record<string, unknown>) => void;
 
   atlas: AtlasSpec;
   setAtlas: (a: AtlasSpec) => void;
@@ -63,10 +66,13 @@ interface AppState {
   removePage: (id: string) => void;
   clearPages: () => void;
 
-  drawMode: 'none' | 'waypoint' | 'track' | 'icon';
+  drawMode: 'none' | 'waypoint' | 'track' | 'icon' | 'text';
   setDrawMode: (m: AppState['drawMode']) => void;
   iconName: string | null;
   setIconName: (n: string | null) => void;
+  /** Storlek för nästa ikon/textruta som placeras. */
+  iconSize: IconSize;
+  setIconSize: (size: IconSize) => void;
   mapView: MapViewState;
   setMapView: (view: Partial<MapViewState>) => void;
 }
@@ -165,7 +171,7 @@ export const useStore = create<AppState>()(
             ...s.overlays,
             waypoints: {
               type: 'FeatureCollection',
-              features: s.overlays.waypoints.features.filter((f) => !f.properties?.icon),
+              features: s.overlays.waypoints.features.filter((f) => !f.properties?.icon && !f.properties?.text),
             },
           },
         })),
@@ -177,6 +183,18 @@ export const useStore = create<AppState>()(
             waypoints: {
               type: 'FeatureCollection',
               features: s.overlays.waypoints.features.filter((_, i) => i !== index),
+            },
+          },
+        })),
+      updateWaypoint: (index, props) =>
+        set((s) => ({
+          overlays: {
+            ...s.overlays,
+            waypoints: {
+              type: 'FeatureCollection',
+              features: s.overlays.waypoints.features.map((f, i) =>
+                i === index ? { ...f, properties: { ...f.properties, ...props } } : f,
+              ),
             },
           },
         })),
@@ -199,6 +217,8 @@ export const useStore = create<AppState>()(
       setDrawMode: (m) => set({ drawMode: m }),
       iconName: null,
       setIconName: (n) => set({ iconName: n, drawMode: n ? 'icon' : 'none' }),
+      iconSize: 'm',
+      setIconSize: (iconSize) => set({ iconSize }),
       mapView: DEFAULT_MAP_VIEW,
       setMapView: (view) => set((s) => ({ mapView: { ...s.mapView, ...view } })),
     }),
@@ -278,7 +298,7 @@ function normalizeOverlays(overlays: Partial<Overlays> | undefined): Overlays {
 }
 
 function normalizeDrawMode(drawMode: PersistedAppState['drawMode'] | undefined): AppState['drawMode'] {
-  return drawMode === 'waypoint' || drawMode === 'track' || drawMode === 'icon' ? drawMode : 'none';
+  return drawMode === 'waypoint' || drawMode === 'track' || drawMode === 'icon' || drawMode === 'text' ? drawMode : 'none';
 }
 
 function normalizeMapView(mapView: Partial<MapViewState> | undefined): MapViewState {

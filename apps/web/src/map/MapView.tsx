@@ -57,6 +57,7 @@ export function MapView({ onCursor }: { onCursor: (s: string) => void }) {
   const trackColor = useStore((s) => s.trackColor);
   const trackWidth = useStore((s) => s.trackWidth);
   const trackArrows = useStore((s) => s.atlas.trackArrows === true);
+  const trackArrowsReversed = useStore((s) => s.atlas.trackArrowsReversed === true);
   const atlas = useStore((s) => s.atlas);
   const drawMode = useStore((s) => s.drawMode);
   const iconName = useStore((s) => s.iconName);
@@ -152,7 +153,8 @@ export function MapView({ onCursor }: { onCursor: (s: string) => void }) {
     map.setPaintProperty('kvg-tracks-arrows', 'icon-color', trackColor);
     map.setLayoutProperty('kvg-tracks-arrows', 'icon-size', trackWidth / 4);
     map.setLayoutProperty('kvg-tracks-arrows', 'visibility', trackArrows ? 'visible' : 'none');
-  }, [trackColor, trackWidth, trackArrows]);
+    map.setLayoutProperty('kvg-tracks-arrows', 'icon-rotate', trackArrowsReversed ? 180 : 0);
+  }, [trackColor, trackWidth, trackArrows, trackArrowsReversed]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -241,7 +243,10 @@ export function MapView({ onCursor }: { onCursor: (s: string) => void }) {
       if (drawMode === 'waypoint') {
         addWaypoint({ type: 'Point', coordinates: ll });
       } else if (drawMode === 'icon' && iconName) {
-        addWaypoint({ type: 'Point', coordinates: ll }, { icon: iconName });
+        addWaypoint({ type: 'Point', coordinates: ll }, { icon: iconName, size: useStore.getState().iconSize });
+      } else if (drawMode === 'text') {
+        const text = prompt('Text i rutan:')?.trim();
+        if (text) addWaypoint({ type: 'Point', coordinates: ll }, { text, size: useStore.getState().iconSize });
       } else if (drawMode === 'track') {
         trackBuffer.push(ll);
       }
@@ -338,10 +343,37 @@ function restoreMapState(map: MLMap) {
 // MapLibre begär ikonen när en feature behöver den – även efter stilbyten, då
 // addImage-registret nollställs. On demand istället för att försöka hinna före
 // symbol-lagret (annars ritas punkterna tomma tills nästa omritning).
+const TEXT_IMAGE_PREFIX = 'kvgtext:';
+
+// Textruta som bild istället för text-field: kräver inga glyfer från stilen
+// och ser likadan ut i alla kartstilar. Samma ritning som i render-sidan.
+function textBoxImage(text: string, scale: number): ImageData {
+  const ctx = document.createElement('canvas').getContext('2d')!;
+  const font = `${20 * scale}px sans-serif`;
+  ctx.font = font;
+  const pad = 6 * scale;
+  ctx.canvas.width = Math.ceil(ctx.measureText(text).width + pad * 2);
+  ctx.canvas.height = Math.ceil(20 * scale + pad * 2);
+  ctx.fillStyle = 'rgba(255,255,255,0.9)';
+  ctx.strokeStyle = '#222';
+  ctx.lineWidth = 1.5 * scale;
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.strokeRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.font = font;
+  ctx.fillStyle = '#111';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, pad, ctx.canvas.height / 2);
+  return ctx.getImageData(0, 0, ctx.canvas.width, ctx.canvas.height);
+}
+
 function setupIconLoading(map: MLMap) {
   map.on('styleimagemissing', (e) => {
     const name = e.id;
     if (map.hasImage(name)) return;
+    if (name.startsWith(TEXT_IMAGE_PREFIX)) {
+      map.addImage(name, textBoxImage(name.slice(TEXT_IMAGE_PREFIX.length), 2), { pixelRatio: 2 });
+      return;
+    }
     const size = 64;
     const ctx = document.createElement('canvas').getContext('2d');
     if (!ctx) return;
@@ -599,6 +631,7 @@ function setupOverlayLayers(map: MLMap) {
         'symbol-spacing': 80,
         'icon-image': 'kvg-arrow',
         'icon-size': trackWidth / 4,
+        'icon-rotate': atlas.trackArrowsReversed ? 180 : 0,
         'icon-allow-overlap': true,
       },
       paint: { 'icon-color': trackColor },
@@ -610,7 +643,7 @@ function setupOverlayLayers(map: MLMap) {
       id: 'kvg-waypoints-circle',
       type: 'circle',
       source: 'kvg-waypoints',
-      filter: ['!', ['has', 'icon']],
+      filter: ['!', ['any', ['has', 'icon'], ['has', 'text']]],
       paint: {
         'circle-radius': 5,
         'circle-color': '#c0392b',
@@ -622,10 +655,10 @@ function setupOverlayLayers(map: MLMap) {
       id: 'kvg-waypoints-icon',
       type: 'symbol',
       source: 'kvg-waypoints',
-      filter: ['has', 'icon'],
+      filter: ['any', ['has', 'icon'], ['has', 'text']],
       layout: {
-        'icon-image': ['get', 'icon'],
-        'icon-size': 0.6,
+        'icon-image': ['case', ['has', 'text'], ['concat', TEXT_IMAGE_PREFIX, ['get', 'text']], ['get', 'icon']],
+        'icon-size': ['match', ['get', 'size'], 's', 0.4, 'l', 0.9, 0.6],
         'icon-allow-overlap': true,
       },
     });

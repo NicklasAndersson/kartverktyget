@@ -119,6 +119,8 @@ export interface AtlasSpec {
   trackWidth: number;
   /** Riktningspilar längs spåren (i spårets ritriktning). */
   trackArrows?: boolean;
+  /** Vänd riktningspilarna (mot spårets ritriktning). */
+  trackArrowsReversed?: boolean;
   pages: PageSpec[];
 }
 
