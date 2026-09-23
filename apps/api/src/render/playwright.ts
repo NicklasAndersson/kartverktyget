@@ -11,6 +11,7 @@ interface RenderArgs {
   contours: boolean;
   trackColor: string;
   trackWidth: number;
+  trackArrows: boolean;
   /** Skalfaktor för overlay-mått (px är CSS-px, render-ytan är PRINT_DPI). */
   pxScale: number;
 }

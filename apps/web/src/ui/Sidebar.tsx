@@ -410,6 +410,14 @@ export function Sidebar() {
         Spårfärg
         <input type="color" value={trackColor} onChange={(e) => setTrackColor(e.target.value)} />
       </label>
+      <label>
+        <input
+          type="checkbox"
+          checked={atlas.trackArrows === true}
+          onChange={(e) => setAtlas({ ...atlas, trackArrows: e.target.checked })}
+        />{' '}
+        Riktningspilar
+      </label>
       <SizeControl
         label="Spårbredd"
         value={trackWidth}

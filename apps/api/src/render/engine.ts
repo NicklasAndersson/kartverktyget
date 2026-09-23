@@ -70,6 +70,7 @@ export async function renderAtlas(req: RenderRequest, log: FastifyBaseLogger): P
       contours: atlas.contours,
       trackColor: normalizeTrackColor(atlas.trackColor),
       trackWidth: normalizeTrackWidth(atlas.trackWidth),
+      trackArrows: atlas.trackArrows === true,
       pxScale: PRINT_DPI / CSS_DPI,
     });
 

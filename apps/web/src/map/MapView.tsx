@@ -56,6 +56,7 @@ export function MapView({ onCursor }: { onCursor: (s: string) => void }) {
   const overlays = useStore((s) => s.overlays);
   const trackColor = useStore((s) => s.trackColor);
   const trackWidth = useStore((s) => s.trackWidth);
+  const trackArrows = useStore((s) => s.atlas.trackArrows === true);
   const atlas = useStore((s) => s.atlas);
   const drawMode = useStore((s) => s.drawMode);
   const iconName = useStore((s) => s.iconName);
@@ -148,7 +149,10 @@ export function MapView({ onCursor }: { onCursor: (s: string) => void }) {
     if (!map || !map.getLayer('kvg-tracks-line')) return;
     map.setPaintProperty('kvg-tracks-line', 'line-color', trackColor);
     map.setPaintProperty('kvg-tracks-line', 'line-width', trackWidth);
-  }, [trackColor, trackWidth]);
+    map.setPaintProperty('kvg-tracks-arrows', 'icon-color', trackColor);
+    map.setLayoutProperty('kvg-tracks-arrows', 'icon-size', trackWidth / 4);
+    map.setLayoutProperty('kvg-tracks-arrows', 'visibility', trackArrows ? 'visible' : 'none');
+  }, [trackColor, trackWidth, trackArrows]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -555,6 +559,21 @@ function isKindGetExpression(value: unknown): value is ['get', 'kind'] {
   return Array.isArray(value) && value[0] === 'get' && value[1] === 'kind';
 }
 
+// Chevron som pekar i linjens riktning; SDF så att icon-color färgar den.
+// Samma ritning som i apps/api/src/render/page/index.html.
+function arrowImage(size: number): ImageData {
+  const ctx = document.createElement('canvas').getContext('2d')!;
+  ctx.canvas.width = ctx.canvas.height = size;
+  ctx.lineWidth = size * 0.2;
+  ctx.lineCap = ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(size * 0.3, size * 0.2);
+  ctx.lineTo(size * 0.7, size * 0.5);
+  ctx.lineTo(size * 0.3, size * 0.8);
+  ctx.stroke();
+  return ctx.getImageData(0, 0, size, size);
+}
+
 function setupOverlayLayers(map: MLMap) {
   if (!map.getSource('kvg-tracks')) {
     map.addSource('kvg-tracks', { type: 'geojson', data: { type: 'FeatureCollection', features: [] } });
@@ -567,6 +586,22 @@ function setupOverlayLayers(map: MLMap) {
         'line-width': useStore.getState().trackWidth,
         'line-opacity': 0.9,
       },
+    });
+    const { trackColor, trackWidth, atlas } = useStore.getState();
+    if (!map.hasImage('kvg-arrow')) map.addImage('kvg-arrow', arrowImage(32), { pixelRatio: 2, sdf: true });
+    map.addLayer({
+      id: 'kvg-tracks-arrows',
+      type: 'symbol',
+      source: 'kvg-tracks',
+      layout: {
+        visibility: atlas.trackArrows ? 'visible' : 'none',
+        'symbol-placement': 'line',
+        'symbol-spacing': 80,
+        'icon-image': 'kvg-arrow',
+        'icon-size': trackWidth / 4,
+        'icon-allow-overlap': true,
+      },
+      paint: { 'icon-color': trackColor },
     });
   }
   if (!map.getSource('kvg-waypoints')) {

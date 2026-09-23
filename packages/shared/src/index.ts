@@ -117,6 +117,8 @@ export interface AtlasSpec {
   trackColor: string;
   /** Linjebredd på spår – samma värde i preview och PDF. */
   trackWidth: number;
+  /** Riktningspilar längs spåren (i spårets ritriktning). */
+  trackArrows?: boolean;
   pages: PageSpec[];
 }
 
