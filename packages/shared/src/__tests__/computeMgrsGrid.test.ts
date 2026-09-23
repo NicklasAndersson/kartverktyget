@@ -31,6 +31,26 @@ describe('computeMgrsGrid', () => {
     }
   });
 
+  it('keeps label points apart so none is drawn on top of another', () => {
+    // A4-liggande vid 1:25 000 (samma bounds som utskriften) – där är rutnätet
+    // 100 m och etiketterna ~350 m breda / ~50 m höga på papperet. Centrum
+    // svepts så att etikettraden hamnar på olika avstånd från rutnätslinjerna.
+    for (let offset = 0; offset < 20; offset++) {
+      const south = 59.3091 + offset * 0.0005;
+      const out = computeMgrsGrid({ west: 18.0099, south, east: 18.1273, north: south + 0.0404, zoom: 13, sizeBias: 0 });
+      const points = out.features
+        .filter((f) => f.geometry.type === 'Point')
+        .map((f) => (f.geometry as { coordinates: [number, number] }).coordinates);
+      for (let i = 0; i < points.length; i++) {
+        for (let j = i + 1; j < points.length; j++) {
+          const dLonM = Math.abs(points[i]![0] - points[j]![0]) * 111320 * Math.cos((south * Math.PI) / 180);
+          const dLatM = Math.abs(points[i]![1] - points[j]![1]) * 111320;
+          expect(dLonM > 350 || dLatM > 50).toBe(true);
+        }
+      }
+    }
+  });
+
   it('caps feature count to a reasonable upper bound', () => {
     const out = computeMgrsGrid({ ...STOCKHOLM_BBOX, zoom: 18, sizeBias: 0 });
     // Implementation hard-caps lines to 250 per axis + labels; we just assert no runaway.

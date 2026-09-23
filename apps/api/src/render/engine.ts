@@ -22,6 +22,11 @@ import { loadStyle, resolveStylesDir } from '../styles.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
+// Webbläsarens CSS-pixel är 1/96 tum. Render-ytan är PRINT_DPI, så spår och
+// punkter måste skalas med kvoten för att bli lika stora på papper som i
+// förhandsvisningen.
+const CSS_DPI = 96;
+
 /**
  * Renderar en hel atlas till en sammansatt PDF-buffer.
  *
@@ -65,6 +70,7 @@ export async function renderAtlas(req: RenderRequest, log: FastifyBaseLogger): P
       contours: atlas.contours,
       trackColor: normalizeTrackColor(atlas.trackColor),
       trackWidth: normalizeTrackWidth(atlas.trackWidth),
+      pxScale: PRINT_DPI / CSS_DPI,
     });
 
     const png = await pdf.embedPng(pngBytes);

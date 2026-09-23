@@ -388,14 +388,17 @@ export function computeMgrsGrid(args: {
     });
   }
 
-  const centerN = (minN + maxN) / 2;
-  const centerE = (minE + maxE) / 2;
+  // Etiketterna för eastings ligger på en vågrät linje och de för northings på
+  // en lodrät. Läggs båda i mitten hamnar de ovanpå varandra där linjerna
+  // korsas, så den lodräta flyttas till en fjärdedel in.
+  const labelN = (minN + maxN) / 2;
+  const labelE = minE + (maxE - minE) / 4;
   const labelStride = Math.max(1, Math.ceil(Math.max(lineCountE, lineCountN) / 12));
   for (let i = 0; i < lineCountE; i++) {
     if (i % labelStride !== 0) continue;
     const easting = firstE + i * stepMeters;
     if (easting > maxE) break;
-    const lonLat = proj4(utmDef, 'WGS84', [easting, centerN]);
+    const lonLat = proj4(utmDef, 'WGS84', [easting, labelN]);
     features.push({
       type: 'Feature',
       properties: { label: gridLabel([lonLat[0]!, lonLat[1]!], precision) },
@@ -406,7 +409,10 @@ export function computeMgrsGrid(args: {
     if (i % labelStride !== 0) continue;
     const northing = firstN + i * stepMeters;
     if (northing > maxN) break;
-    const lonLat = proj4(utmDef, 'WGS84', [centerE, northing]);
+    // Hoppa över den etikett som hamnar där raden av easting-etiketter korsar
+    // kolumnen – annars ritas de två ovanpå varandra.
+    if (Math.abs(northing - labelN) < stepMeters) continue;
+    const lonLat = proj4(utmDef, 'WGS84', [labelE, northing]);
     features.push({
       type: 'Feature',
       properties: { label: gridLabel([lonLat[0]!, lonLat[1]!], precision) },

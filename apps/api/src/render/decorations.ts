@@ -1,5 +1,5 @@
 import type { PDFPage, PDFFont } from 'pdf-lib';
-import { degrees, rgb } from 'pdf-lib';
+import { clip, degrees, endPath, popGraphicsState, pushGraphicsState, rectangle, rgb } from 'pdf-lib';
 import proj4 from 'proj4';
 import * as mgrsModule from 'mgrs';
 import { MM_PER_INCH, PRINT_DPI, computeMgrsGrid, formatMgrs, utmZoneFromLon, type AtlasSpec, type PageSpec } from '@kvg/shared';
@@ -96,7 +96,9 @@ export function drawPageDecorations(a: DecoArgs) {
 
   // 6. Bottommarginal: datum + sidnr (vänster) och attribution (centrerad).
   // Sidnumret ligger ihop med datumet så högerkanten är fri för norrpilen.
-  const botY = mapYPt - 14;
+  // Under kantkoordinaterna (som ligger på ~-10,5 pt) men ovanför skalstrecket
+  // på -34 pt – annars skrivs datumraden ovanpå den nedre MGRS-etiketten.
+  const botY = mapYPt - 21;
   const dateStr = new Date().toISOString().slice(0, 10);
   const footerLeft = `${dateStr}  ·  Sida ${pageIndex + 1} / ${totalPages}`;
   pdfPage.drawText(footerLeft, { x: mapXPt, y: botY, size: 7, font, color: rgb(0, 0, 0) });
@@ -235,12 +237,19 @@ function drawPdfMgrsGrid(args: {
   const zoom = estimateMapZoom(bounds, widthPx, heightPx);
   const grid = computeMgrsGrid({ ...bounds, zoom, sizeBias: atlas.mgrsGridSizeBias });
 
+  // Rutnätet sträcker sig förbi kartans hörn (UTM-rutor mot WGS84-bounds), så
+  // linjerna klipps till kartytan – annars ritas de ut i marginalen ovanpå
+  // kantkoordinater och sidfot.
+  pdfPage.pushOperators(pushGraphicsState(), rectangle(mapXPt, mapYPt, mapWPt, mapHPt), clip(), endPath());
   for (const feature of grid.features) {
     if (feature.geometry.type === 'LineString') {
       drawGridLine(pdfPage, feature.geometry.coordinates as [number, number][], bounds, mapXPt, mapYPt, mapWPt, mapHPt);
       continue;
     }
     if (feature.geometry.type === 'Point') {
+      // Etiketter klipps inte utan hoppas över helt när de hamnar utanför.
+      const [lon, lat] = feature.geometry.coordinates as [number, number];
+      if (lon < bounds.west || lon > bounds.east || lat < bounds.south || lat > bounds.north) continue;
       drawGridLabel(
         pdfPage,
         font,
@@ -254,6 +263,7 @@ function drawPdfMgrsGrid(args: {
       );
     }
   }
+  pdfPage.pushOperators(popGraphicsState());
 }
 
 function drawGridLine(

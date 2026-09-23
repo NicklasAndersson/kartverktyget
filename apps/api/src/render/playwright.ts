@@ -11,6 +11,8 @@ interface RenderArgs {
   contours: boolean;
   trackColor: string;
   trackWidth: number;
+  /** Skalfaktor för overlay-mått (px är CSS-px, render-ytan är PRINT_DPI). */
+  pxScale: number;
 }
 
 const RENDER_TIMEOUT_MS = 45_000;
