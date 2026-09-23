@@ -90,6 +90,7 @@ export function MapView({ onCursor }: { onCursor: (s: string) => void }) {
       restoreMapState(map);
     });
 
+    setupIconLoading(map);
     setupAtlasDrag(map);
 
     map.on('moveend', () => {
@@ -267,7 +268,8 @@ function styleUrlFor(mapSource: MapSource, styleId: string): string {
   return `/styles/${styleId}.json`;
 }
 
-const ICON_NAMES = ['tent', 'fire', 'water', 'parking', 'warning'] as const;
+// Äldre sparade ikoner använde namn istället för emoji.
+const LEGACY_ICONS: Record<string, string> = { tent: '⛺', fire: '🔥', water: '💧', parking: '🅿️', warning: '⚠️' };
 const MONITORED_KINDS: Record<'landcover' | 'landuse', readonly string[]> = {
   landcover: ['wood', 'scrub', 'grass', 'crop', 'wetland'],
   landuse: [
@@ -329,16 +331,23 @@ function restoreMapState(map: MLMap) {
   }
 }
 
-async function loadIcons(map: MLMap) {
-  for (const name of ICON_NAMES) {
-    if (map.hasImage(name)) continue;
-    try {
-      const img = await map.loadImage(`/icons/${name}.png`);
-      if (!map.hasImage(name)) map.addImage(name, img.data);
-    } catch {
-      /* ignore – ikon kan saknas under utveckling */
-    }
-  }
+// MapLibre begär ikonen när en feature behöver den – även efter stilbyten, då
+// addImage-registret nollställs. On demand istället för att försöka hinna före
+// symbol-lagret (annars ritas punkterna tomma tills nästa omritning).
+function setupIconLoading(map: MLMap) {
+  map.on('styleimagemissing', (e) => {
+    const name = e.id;
+    if (map.hasImage(name)) return;
+    const size = 64;
+    const ctx = document.createElement('canvas').getContext('2d');
+    if (!ctx) return;
+    ctx.canvas.width = ctx.canvas.height = size;
+    ctx.font = `${size * 0.8}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(LEGACY_ICONS[name] ?? name, size / 2, size / 2 + size * 0.05);
+    map.addImage(name, ctx.getImageData(0, 0, size, size), { pixelRatio: 2 });
+  });
 }
 
 function warnAboutMissingStyleCoverage(map: MLMap, warned: Set<string>) {
@@ -585,7 +594,6 @@ function setupOverlayLayers(map: MLMap) {
         'icon-allow-overlap': true,
       },
     });
-    loadIcons(map);
   }
 }
 

@@ -99,8 +99,27 @@
         });
       }
 
+      // Ikoner måste vara inlästa innan symbol-lagret ritas, annars hoppar
+      // MapLibre över dem och PDF:en får tomma punkter.
+      // Emojin ritas på en canvas; äldre sparade ikoner har namn istället för emoji.
+      const LEGACY_ICONS = { tent: '⛺', fire: '🔥', water: '💧', parking: '🅿️', warning: '⚠️' };
+      function loadIcons(map, waypoints, pxScale) {
+        const size = Math.ceil(32 * Math.max(2, pxScale));
+        for (const f of waypoints?.features ?? []) {
+          const name = f?.properties?.icon;
+          if (typeof name !== 'string' || map.hasImage(name)) continue;
+          const ctx = document.createElement('canvas').getContext('2d');
+          ctx.canvas.width = ctx.canvas.height = size;
+          ctx.font = `${size * 0.8}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(LEGACY_ICONS[name] ?? name, size / 2, size / 2 + size * 0.05);
+          map.addImage(name, ctx.getImageData(0, 0, size, size), { pixelRatio: size / 32 });
+        }
+      }
+
       window.kvgRender = async function (args) {
-        const { style, bounds, widthPx, heightPx, overlays, watercourses = true, contours, trackColor = '#c0392b', trackWidth = 2.5 } = args;
+        const { style, bounds, widthPx, heightPx, overlays, watercourses = true, contours, trackColor = '#c0392b', trackWidth = 2.5, pxScale = 1 } = args;
         document.body.style.width = widthPx + 'px';
         document.body.style.height = heightPx + 'px';
         const el = document.getElementById('map');
@@ -123,27 +142,41 @@
           addWatercourseLayer(map);
         }
 
-        // Overlays.
+        // Overlays. Alla mått multipliceras med pxScale eftersom render-ytan
+        // är 300 DPI – annars blir spår och punkter hårfina på papper.
         if (overlays?.tracks?.features?.length) {
           map.addSource('kvg-tracks', { type: 'geojson', data: overlays.tracks });
           map.addLayer({
             id: 'kvg-tracks-line',
             type: 'line',
             source: 'kvg-tracks',
-            paint: { 'line-color': trackColor, 'line-width': trackWidth },
+            paint: { 'line-color': trackColor, 'line-width': trackWidth * pxScale },
           });
         }
         if (overlays?.waypoints?.features?.length) {
+          loadIcons(map, overlays.waypoints, pxScale);
           map.addSource('kvg-waypoints', { type: 'geojson', data: overlays.waypoints });
           map.addLayer({
             id: 'kvg-waypoints-circle',
             type: 'circle',
             source: 'kvg-waypoints',
+            filter: ['!', ['has', 'icon']],
             paint: {
-              'circle-radius': 4,
+              'circle-radius': 5 * pxScale,
               'circle-color': '#c0392b',
               'circle-stroke-color': '#fff',
-              'circle-stroke-width': 1.5,
+              'circle-stroke-width': 1.5 * pxScale,
+            },
+          });
+          map.addLayer({
+            id: 'kvg-waypoints-icon',
+            type: 'symbol',
+            source: 'kvg-waypoints',
+            filter: ['has', 'icon'],
+            layout: {
+              'icon-image': ['get', 'icon'],
+              'icon-size': 0.6 * pxScale,
+              'icon-allow-overlap': true,
             },
           });
         }

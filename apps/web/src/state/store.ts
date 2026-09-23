@@ -53,6 +53,7 @@ interface AppState {
   addWaypoint: (pt: Point, props?: Record<string, unknown>) => void;
   clearOverlays: () => void;
   clearIcons: () => void;
+  removeWaypoint: (index: number) => void;
 
   atlas: AtlasSpec;
   setAtlas: (a: AtlasSpec) => void;
@@ -165,6 +166,17 @@ export const useStore = create<AppState>()(
             waypoints: {
               type: 'FeatureCollection',
               features: s.overlays.waypoints.features.filter((f) => !f.properties?.icon),
+            },
+          },
+        })),
+
+      removeWaypoint: (index) =>
+        set((s) => ({
+          overlays: {
+            ...s.overlays,
+            waypoints: {
+              type: 'FeatureCollection',
+              features: s.overlays.waypoints.features.filter((_, i) => i !== index),
             },
           },
         })),

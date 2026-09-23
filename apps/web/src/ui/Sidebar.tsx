@@ -14,13 +14,8 @@ import {
 } from '@kvg/shared';
 import type { StyleId, Scale, PaperSize, Orientation, MapSource } from '@kvg/shared';
 
-const ICONS = [
-  { name: 'tent', label: 'Tält' },
-  { name: 'fire', label: 'Eldplats' },
-  { name: 'water', label: 'Vatten' },
-  { name: 'parking', label: 'Parkering' },
-  { name: 'warning', label: 'Varning' },
-];
+const EMOJIS = ['⛺', '🔥', '💧', '🅿️', '⚠️', '🏠', '🛖', '🏕️', '🚻', '🍴', '☕', '🎣', '🛶', '⛵', '🚤', '⚓', '🏊', '🥾', '🚲', '🚗', '🚌', '⛽', '🏥', '⛪', '🗼', '🌲', '⛰️', '🌊', '🦌', '📷', '👁️', '🚩', '📍', '⭐', '❌', '❓'];
+const LEGACY_ICONS: Record<string, string> = { tent: '⛺', fire: '🔥', water: '💧', parking: '🅿️', warning: '⚠️' };
 
 const STYLE_OPTIONS: Array<{ value: StyleId; label: string }> = [
   { value: 'friluft', label: 'Friluft (färg)' },
@@ -164,6 +159,8 @@ export function Sidebar() {
   const addPage = useStore((s) => s.addPage);
   const addPages = useStore((s) => s.addPages);
   const removePage = useStore((s) => s.removePage);
+  const removeWaypoint = useStore((s) => s.removeWaypoint);
+  const clearIcons = useStore((s) => s.clearIcons);
   const clearPages = useStore((s) => s.clearPages);
   const drawMode = useStore((s) => s.drawMode);
   const setDrawMode = useStore((s) => s.setDrawMode);
@@ -424,17 +421,55 @@ export function Sidebar() {
       />
 
       <h2>Ikoner</h2>
-      <div>
-        {ICONS.map((ic) => (
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+        {EMOJIS.map((emoji) => (
           <button
-            key={ic.name}
-            className={iconName === ic.name ? '' : 'secondary'}
-            onClick={() => setIconName(iconName === ic.name ? null : ic.name)}
+            key={emoji}
+            title={emoji}
+            className={iconName === emoji ? '' : 'secondary'}
+            style={{ padding: '2px 4px', fontSize: 18 }}
+            onClick={() => setIconName(iconName === emoji ? null : emoji)}
           >
-            {ic.label}
+            {emoji}
           </button>
         ))}
       </div>
+      <label style={{ marginTop: 6 }}>
+        Egen emoji
+        <input
+          type="text"
+          placeholder="Klistra in valfri emoji"
+          value={iconName && !EMOJIS.includes(iconName) ? iconName : ''}
+          onChange={(e) => setIconName(e.target.value.trim() || null)}
+        />
+      </label>
+      <ol style={{ fontSize: 12, paddingLeft: 18, marginTop: 8 }}>
+        {overlays.waypoints.features.map((f, i) => {
+          const icon = f.properties?.icon;
+          if (typeof icon !== 'string' || f.geometry.type !== 'Point') return null;
+          const [lng = 0, lat = 0] = f.geometry.coordinates;
+          return (
+            <li key={i} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span>
+                {LEGACY_ICONS[icon] ?? icon} {lat.toFixed(4)}, {lng.toFixed(4)}
+              </span>
+              <button className="secondary" style={{ padding: '2px 6px' }} onClick={() => removeWaypoint(i)}>
+                ✕
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+      {overlays.waypoints.features.some((f) => f.properties?.icon) && (
+        <button
+          className="secondary"
+          onClick={() => {
+            if (confirm('Ta bort alla ikoner?')) clearIcons();
+          }}
+        >
+          Rensa ikoner
+        </button>
+      )}
 
       <h2>Utskrift</h2>
       <label>
