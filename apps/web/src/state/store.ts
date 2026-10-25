@@ -107,7 +107,11 @@ export const useStore = create<AppState>()(
       styleId: initialAtlas.styleId,
       setStyleId: (id) => set((s) => ({ styleId: id, atlas: { ...s.atlas, styleId: id } })),
       mapSource: initialAtlas.mapSource,
-      setMapSource: (mapSource) => set((s) => ({ mapSource, atlas: { ...s.atlas, mapSource } })),
+      setMapSource: (mapSource) =>
+        set((s) => {
+          const styleId = styleForSource(mapSource, s.styleId);
+          return { mapSource, styleId, atlas: { ...s.atlas, mapSource, styleId } };
+        }),
       labels: initialAtlas.labels,
       setLabels: (b) => set((s) => ({ labels: b, atlas: { ...s.atlas, labels: b } })),
       labelSize: initialAtlas.labelSize,
@@ -305,16 +309,24 @@ function syncAtlasState(atlas: AtlasSpec) {
 }
 
 function normalizeAtlas(atlas: Partial<AtlasSpec> | undefined): AtlasSpec {
+  const mapSource = normalizeMapSource(atlas?.mapSource);
   return {
     ...initialAtlas,
     ...atlas,
-    mapSource: normalizeMapSource(atlas?.mapSource),
+    mapSource,
+    styleId: styleForSource(mapSource, atlas?.styleId ?? initialAtlas.styleId),
     labelSize: normalizeLabelSize(atlas?.labelSize),
     roadSize: normalizeRoadSize(atlas?.roadSize),
     trackColor: normalizeTrackColor(atlas?.trackColor),
     trackWidth: normalizeTrackWidth(atlas?.trackWidth),
     pages: Array.isArray(atlas?.pages) ? atlas.pages : initialAtlas.pages,
   };
+}
+
+/** Behåll stilen om den hör till källan, annars källans standardstil (gamla sparade atlaser). */
+function styleForSource(source: MapSource, styleId: StyleId): StyleId {
+  if (styleId.startsWith('lantmateriet-') === (source === 'lm')) return styleId;
+  return source === 'lm' ? 'lantmateriet-topo10' : initialAtlas.styleId;
 }
 
 function normalizeMapSource(value: unknown): MapSource {

@@ -17,7 +17,10 @@ export type StyleId =
   | 'protomaps-bio'
   | 'protomaps-seafoam'
   | 'protomaps-dusk-rose'
-  | 'protomaps-flat';
+  | 'protomaps-flat'
+  | 'lantmateriet-topo10'
+  | 'lantmateriet-topo10-gray'
+  | 'lantmateriet-topo10-pale';
 
 /**
  * Underliggande datakälla för baskartan.
@@ -93,8 +96,8 @@ export interface AtlasSpec {
   overlap: number;
   styleId: StyleId;
   /**
-   * Vilken datakälla baskartan ritas från. `styleId` används endast när
-   * `mapSource === 'osm'`; för `lm` är stilen `lantmateriet-topo10`.
+   * Vilken datakälla baskartan ritas från. `styleId` måste höra till
+   * datakällan: `lantmateriet-*` för `lm`, övriga för `osm`.
    */
   mapSource: MapSource;
   /** Visa gatunamn och andra baskart-etiketter. */

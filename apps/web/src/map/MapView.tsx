@@ -271,8 +271,7 @@ export function MapView({ onCursor }: { onCursor: (s: string) => void }) {
 
 // ---------------- helpers ----------------
 
-function styleUrlFor(mapSource: MapSource, styleId: string): string {
-  if (mapSource === 'lm') return '/styles/lantmateriet-topo10.json';
+function styleUrlFor(_mapSource: MapSource, styleId: string): string {
   return `/styles/${styleId}.json`;
 }
 

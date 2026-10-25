@@ -19,6 +19,9 @@ const EMOJIS = ['⛺', '🔥', '💧', '🅿️', '⚠️', '🏠', '🛖', '�
 const LEGACY_ICONS: Record<string, string> = { tent: '⛺', fire: '🔥', water: '💧', parking: '🅿️', warning: '⚠️' };
 
 const STYLE_OPTIONS: Array<{ value: StyleId; label: string }> = [
+  { value: 'lantmateriet-topo10', label: 'Topografi 10 (färg)' },
+  { value: 'lantmateriet-topo10-gray', label: 'Topografi 10 (gråskala)' },
+  { value: 'lantmateriet-topo10-pale', label: 'Topografi 10 (blek)' },
   { value: 'friluft', label: 'Friluft (färg)' },
   { value: 'sw-laser', label: 'Svartvitt (laser)' },
   { value: 'minimal', label: 'Minimalistisk' },
@@ -341,10 +344,9 @@ export function Sidebar() {
       </label>
       <select
         value={styleId}
-        disabled={mapSource === 'lm'}
         onChange={(e) => setStyleId(e.target.value as StyleId)}
       >
-        {STYLE_OPTIONS.map((option) => (
+        {STYLE_OPTIONS.filter((o) => o.value.startsWith('lantmateriet-') === (mapSource === 'lm')).map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>

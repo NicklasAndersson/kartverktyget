@@ -118,7 +118,8 @@ async function styleJsonFor(
   roadSize: AtlasSpec['roadSize'],
 ): Promise<object> {
   const apiPort = process.env.PORT ?? '8787';
-  const styleName = mapSource === 'lm' ? 'lantmateriet-topo10' : id;
+  // Äldre klienter skickar styleId 'friluft' tillsammans med mapSource 'lm'.
+  const styleName = mapSource === 'lm' && !id.startsWith('lantmateriet-') ? 'lantmateriet-topo10' : id;
   // Hämta från vår egen /styles/-route så att pmtiles://-URL:erna redan är
   // omskrivna utifrån aktuell PMTILES_*-konfiguration. Same-host, så även
   // proxy-läget (med inbakade credentials) fungerar transparent.
