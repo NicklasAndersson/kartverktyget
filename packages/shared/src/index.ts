@@ -124,6 +124,8 @@ export interface AtlasSpec {
   trackArrows?: boolean;
   /** Titel i PDF:ens övre vänstra hörn (standard "Fältkarta"). */
   title?: string;
+  /** Ändringar från vald egen stil, appliceras ovanpå `styleId` (basstilen). */
+  styleOverrides?: StyleOverrides;
   pages: PageSpec[];
 }
 
@@ -201,6 +203,59 @@ export function applyRoadSizeToStyleLayers<T extends StyleLayerLike>(layers: T[]
       },
     };
   });
+}
+
+/** Ändringar av ett enskilt lager (paint/layout-egenskaper). */
+export interface LayerOverride {
+  paint?: Record<string, unknown>;
+  layout?: Record<string, unknown>;
+}
+
+/** Lager-id → ändringar. Lagras som diff mot en inbyggd basstil. */
+export type StyleOverrides = Record<string, LayerOverride>;
+
+/** Användarens egna stil: en inbyggd basstil plus ändringar. */
+export interface CustomStyle {
+  id: string;
+  name: string;
+  baseStyleId: StyleId;
+  overrides: StyleOverrides;
+}
+
+/** Slår ihop overrides in i lagrens paint/layout. Okända lager-id ignoreras. */
+export function applyStyleOverrides<T extends StyleLayerLike>(layers: T[], overrides: StyleOverrides | undefined): T[] {
+  if (!overrides) return layers;
+  return layers.map((layer) => {
+    const o = layer.id && !layer.id.startsWith('kvg-') ? overrides[layer.id] : undefined;
+    if (!o) return layer;
+    return {
+      ...layer,
+      ...(o.paint ? { paint: { ...layer.paint, ...o.paint } } : {}),
+      ...(o.layout ? { layout: { ...layer.layout, ...o.layout } } : {}),
+    };
+  });
+}
+
+const isPlainObject = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/** Släpper igenom bara välformade `{ lagerId: { paint?, layout? } }`; allt annat tas bort. */
+export function normalizeStyleOverrides(value: unknown): StyleOverrides {
+  const out: StyleOverrides = {};
+  if (!isPlainObject(value)) return out;
+  for (const [layerId, raw] of Object.entries(value)) {
+    if (!isPlainObject(raw)) continue;
+    const entry: LayerOverride = {};
+    if (isPlainObject(raw.paint)) entry.paint = { ...raw.paint };
+    if (isPlainObject(raw.layout)) entry.layout = { ...raw.layout };
+    if (entry.paint || entry.layout) out[layerId] = entry;
+  }
+  return out;
+}
+
+/** Skalar ett tal eller ett zoom-uttryck (interpolate/step) med en faktor. */
+export function scaleStyleExpression(value: unknown, factor: number): unknown {
+  return scaleStyleValue(value, factor);
 }
 
 export function normalizeLabelSize(value: unknown): LabelSize {

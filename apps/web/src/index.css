@@ -72,3 +72,13 @@ body { background: #1e1e1e; color: #eee; }
   border-radius: 3px;
   pointer-events: none;
 }
+
+.sidebar .hint { font-size: 11px; color: #999; margin: 4px 0; }
+.sidebar summary { cursor: pointer; font-size: 12px; margin: 6px 0; }
+.sidebar input[type="search"] { width: 100%; box-sizing: border-box; margin: 6px 0 2px; }
+.sidebar select[size] { width: 100%; }
+.sidebar .style-editor h2 { text-transform: none; word-break: break-all; }
+.inspect-hits { max-height: 160px; overflow-y: auto; margin: 6px 0; font-size: 11px; }
+.inspect-hit { padding: 4px 6px; border-radius: 3px; cursor: pointer; background: #2a2a2a; margin-bottom: 2px; }
+.inspect-hit.selected { background: #3a7; }
+.inspect-hit span, .inspect-hit div { color: #bbb; }

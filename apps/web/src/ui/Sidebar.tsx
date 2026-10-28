@@ -13,6 +13,7 @@ import {
   TRACK_WIDTH_RANGE,
   pageMetersOnGround,
 } from '@kvg/shared';
+import { StyleEditor } from './StyleEditor.js';
 import type { StyleId, Scale, PaperSize, Orientation, MapSource } from '@kvg/shared';
 
 const EMOJIS = ['⛺', '🔥', '💧', '🅿️', '⚠️', '🏠', '🛖', '🏕️', '🚻', '🍴', '☕', '🎣', '🛶', '⛵', '🚤', '⚓', '🏊', '🥾', '🚲', '🚗', '🚌', '⛽', '🏥', '⛪', '🗼', '🌲', '⛰️', '🌊', '🦌', '📷', '👁️', '🚩', '📍', '⭐', '❌', '❓'];
@@ -140,6 +141,13 @@ function SizeControl({
 export function Sidebar() {
   const styleId = useStore((s) => s.styleId);
   const setStyleId = useStore((s) => s.setStyleId);
+  const customStyles = useStore((s) => s.customStyles);
+  const activeCustomId = useStore((s) => s.activeCustomId);
+  const selectCustomStyle = useStore((s) => s.selectCustomStyle);
+  const createCustomStyle = useStore((s) => s.createCustomStyle);
+  const renameCustomStyle = useStore((s) => s.renameCustomStyle);
+  const deleteCustomStyle = useStore((s) => s.deleteCustomStyle);
+  const activeCustom = customStyles.find((c) => c.id === activeCustomId);
   const mapSource = useStore((s) => s.mapSource);
   const setMapSource = useStore((s) => s.setMapSource);
   const labels = useStore((s) => s.labels);
@@ -343,15 +351,62 @@ export function Sidebar() {
         </select>
       </label>
       <select
-        value={styleId}
-        onChange={(e) => setStyleId(e.target.value as StyleId)}
+        value={activeCustomId ?? styleId}
+        onChange={(e) =>
+          e.target.value.startsWith('custom-') ? selectCustomStyle(e.target.value) : setStyleId(e.target.value as StyleId)
+        }
       >
         {STYLE_OPTIONS.filter((o) => o.value.startsWith('lantmateriet-') === (mapSource === 'lm')).map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
           </option>
         ))}
+        {customStyles.some((c) => c.baseStyleId.startsWith('lantmateriet-') === (mapSource === 'lm')) && (
+          <optgroup label="Mina stilar">
+            {customStyles
+              .filter((c) => c.baseStyleId.startsWith('lantmateriet-') === (mapSource === 'lm'))
+              .map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+          </optgroup>
+        )}
       </select>
+      <div>
+        <button
+          className="secondary"
+          onClick={() => {
+            const name = prompt('Namn på ny stil:', activeCustom ? `${activeCustom.name} (kopia)` : '')?.trim();
+            if (name) createCustomStyle(name);
+          }}
+        >
+          Spara som ny stil…
+        </button>
+        {activeCustom && (
+          <>
+            <button
+              className="secondary"
+              onClick={() => {
+                const name = prompt('Nytt namn:', activeCustom.name)?.trim();
+                if (name) renameCustomStyle(activeCustom.id, name);
+              }}
+            >
+              Byt namn
+            </button>
+            <button
+              className="secondary"
+              onClick={() => confirm(`Radera stilen "${activeCustom.name}"?`) && deleteCustomStyle(activeCustom.id)}
+            >
+              Radera
+            </button>
+          </>
+        )}
+      </div>
+      <details>
+        <summary>Redigera stil</summary>
+        <StyleEditor />
+      </details>
       <label style={{ marginTop: 8 }}>
         <input type="checkbox" checked={labels} onChange={(e) => setLabels(e.target.checked)} /> Gatunamn och text
       </label>

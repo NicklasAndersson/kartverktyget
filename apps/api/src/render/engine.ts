@@ -8,6 +8,8 @@ import {
   MM_PER_INCH,
   PAPER_SIZES,
   applyLabelSizeToStyleLayers,
+  applyStyleOverrides,
+  normalizeStyleOverrides,
   applyRoadSizeToStyleLayers,
   isBaseMapTextLayer,
   pageMetersOnGround,
@@ -61,7 +63,7 @@ export async function renderAtlas(req: RenderRequest, log: FastifyBaseLogger): P
     const page = atlas.pages[i]!;
     const bounds = pageBoundsMeters(page, widthM, heightM);
     const pngBytes = await renderMapPng({
-      style: await styleJsonFor(atlas.styleId, atlas.mapSource, atlas.labels, atlas.labelSize, atlas.roadSize),
+      style: await styleJsonFor(atlas.styleId, atlas.mapSource, atlas.labels, atlas.labelSize, atlas.roadSize, atlas.styleOverrides),
       bounds,
       widthPx: imgWpx,
       heightPx: imgHpx,
@@ -116,6 +118,7 @@ async function styleJsonFor(
   labels: boolean,
   labelSize: AtlasSpec['labelSize'],
   roadSize: AtlasSpec['roadSize'],
+  styleOverrides: AtlasSpec['styleOverrides'],
 ): Promise<object> {
   const apiPort = process.env.PORT ?? '8787';
   // Äldre klienter skickar styleId 'friluft' tillsammans med mapSource 'lm'.
@@ -130,6 +133,8 @@ async function styleJsonFor(
     layers?: Array<{ id?: string; type?: string; layout?: Record<string, unknown> }>;
   };
   if (style.layers) {
+    // Egna ändringar först, så att text-/vägstorleken skalar de ändrade värdena.
+    style.layers = applyStyleOverrides(style.layers, normalizeStyleOverrides(styleOverrides));
     style.layers = applyLabelSizeToStyleLayers(style.layers, labelSize);
     style.layers = applyRoadSizeToStyleLayers(style.layers, roadSize);
   }

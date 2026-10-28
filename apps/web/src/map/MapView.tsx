@@ -3,7 +3,7 @@ import maplibregl, { Map as MLMap, MapLayerMouseEvent } from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
 import mlcontour from 'maplibre-contour';
 import type { FeatureCollection } from 'geojson';
-import { isBaseMapTextLayer, isBaseRoadLayer, type LabelSize, type MapSource } from '@kvg/shared';
+import { isBaseMapTextLayer, isBaseRoadLayer, type LabelSize, type MapSource, type StyleOverrides } from '@kvg/shared';
 import { useStore } from '../state/store.js';
 import { computeMgrsGrid } from './mgrsGrid.js';
 import { computeAtlasPageRects } from './atlasGeom.js';
@@ -44,6 +44,10 @@ export function MapView({ onCursor }: { onCursor: (s: string) => void }) {
   const mapLoadedRef = useRef(false);
 
   const styleId = useStore((s) => s.styleId);
+  const styleReloadTick = useStore((s) => s.styleReloadTick);
+  const activeCustomId = useStore((s) => s.activeCustomId);
+  const styleOverrides = useStore((s) => s.atlas.styleOverrides);
+  const inspectMode = useStore((s) => s.inspectMode);
   const mapSource = useStore((s) => s.mapSource);
   const labels = useStore((s) => s.labels);
   const labelSize = useStore((s) => s.labelSize);
@@ -134,7 +138,39 @@ export function MapView({ onCursor }: { onCursor: (s: string) => void }) {
       map.off('style.load', restoreAfterStyleLoad);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [styleId, mapSource]);
+  }, [styleId, mapSource, activeCustomId, styleReloadTick]);
+
+  // Egna stilens ändringar: sätts direkt (borttagna ändringar laddar om stilen via styleReloadTick).
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !mapLoadedRef.current || !map.isStyleLoaded()) return;
+    applyStyleOverridesLive(map, styleOverrides);
+  }, [styleOverrides]);
+
+  // Inspektionsläge: klick listar lagren under pekaren.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !inspectMode) return;
+    map.getCanvas().style.cursor = 'crosshair';
+    const onClick = (e: MapLayerMouseEvent) => {
+      const hits = map
+        .queryRenderedFeatures(e.point)
+        .filter((f) => !f.layer.id.startsWith('kvg-'))
+        .map((f) => ({
+          layerId: f.layer.id,
+          sourceLayer: f.sourceLayer,
+          geometry: f.geometry.type,
+          properties: { ...f.properties },
+        }));
+      useStore.getState().setInspectHits(hits);
+      if (hits[0]) useStore.getState().setSelectedLayerId(hits[0].layerId);
+    };
+    map.on('click', onClick);
+    return () => {
+      map.off('click', onClick);
+      map.getCanvas().style.cursor = '';
+    };
+  }, [inspectMode]);
 
   // Reagera på overlay-/atlas-ändringar.
   useEffect(() => {
@@ -316,7 +352,33 @@ type MapWithLabelState = MLMap & {
   __kvgBaseRoadSize?: RoadSizeMap;
 };
 
+/**
+ * Sätter egna paint/layout-ändringar på kartan. Ändrad `line-width`/`text-size` på
+ * ett lager med storleksreglage uppdaterar även det kom-ihågkomna basvärdet, så att
+ * reglagen skalar det nya värdet i stället för att skriva över det.
+ */
+function applyStyleOverridesLive(map: MLMap, overrides: StyleOverrides | undefined, rescale = true) {
+  if (!overrides) return;
+  const state = map as MapWithLabelState;
+  for (const [layerId, o] of Object.entries(overrides)) {
+    if (!map.getLayer(layerId)) continue;
+    for (const [k, v] of Object.entries(o.paint ?? {})) {
+      map.setPaintProperty(layerId, k, v);
+      if (k === 'line-width') state.__kvgBaseRoadSize?.set(layerId, normalizeStyleValue(v));
+    }
+    for (const [k, v] of Object.entries(o.layout ?? {})) {
+      map.setLayoutProperty(layerId, k, v);
+      if (k === 'text-size') state.__kvgBaseTextSize?.set(layerId, normalizeStyleValue(v));
+    }
+  }
+  if (!rescale) return;
+  applyBaseRoadSize(map, useStore.getState().atlas.roadSize);
+  applyBaseTextSize(map, useStore.getState().atlas.labelSize);
+}
+
 function restoreMapState(map: MLMap) {
+  // Egna ändringar före "remember", så text-/vägstorleken skalar de ändrade värdena.
+  applyStyleOverridesLive(map, useStore.getState().atlas.styleOverrides, false);
   rememberBaseTextVisibility(map);
   const { atlas, overlays, contours, mgrsGrid, mgrsMode, mgrsGridSizeBias, labels, watercourses, mapSource } = useStore.getState();
   rememberBaseTextSize(map);

@@ -19,6 +19,9 @@ function validateRequest(body: RenderRequest | undefined): string | null {
   if (typeof atlas.margin !== 'number' || !Number.isFinite(atlas.margin) || atlas.margin < 0) return 'atlas.margin must be >= 0';
   if (typeof atlas.styleId !== 'string' || atlas.styleId.length === 0) return 'atlas.styleId required';
   if (atlas.mapSource !== 'osm' && atlas.mapSource !== 'lm') return 'atlas.mapSource must be osm|lm';
+  if (atlas.styleOverrides !== undefined && JSON.stringify(atlas.styleOverrides ?? null).length > 200_000) {
+    return 'atlas.styleOverrides too large';
+  }
   for (let i = 0; i < atlas.pages.length; i++) {
     const page = atlas.pages[i];
     if (!page || !Array.isArray(page.center) || page.center.length !== 2) {

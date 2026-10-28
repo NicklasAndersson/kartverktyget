@@ -3,6 +3,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import type { FeatureCollection, LineString, Point } from 'geojson';
 import {
   DEFAULT_LABEL_SIZE,
+  normalizeStyleOverrides,
   DEFAULT_ROAD_SIZE,
   DEFAULT_TRACK_COLOR,
   DEFAULT_TRACK_WIDTH,
@@ -11,7 +12,7 @@ import {
   normalizeTrackColor,
   normalizeTrackWidth,
 } from '@kvg/shared';
-import type { AtlasSpec, LabelSize, MapSource, Overlays, PageSpec, StyleId } from '@kvg/shared';
+import type { AtlasSpec, CustomStyle, LabelSize, StyleOverrides, MapSource, Overlays, PageSpec, StyleId } from '@kvg/shared';
 import { DEFAULT_MAP_SOURCE } from '@kvg/shared';
 
 const emptyTracks: FeatureCollection<LineString> = { type: 'FeatureCollection', features: [] };
@@ -22,11 +23,43 @@ type MapViewState = typeof DEFAULT_MAP_VIEW;
 
 export type IconSize = 's' | 'm' | 'l';
 
-type PersistedAppState = Pick<AppState, 'atlas' | 'overlays' | 'drawMode' | 'iconName' | 'mapView'>;
+type PersistedAppState = Pick<
+  AppState,
+  'atlas' | 'overlays' | 'drawMode' | 'iconName' | 'mapView' | 'customStyles' | 'activeCustomId'
+>;
+
+/** Ett träffat lager vid klick i inspektionsläget. */
+export interface InspectHit {
+  layerId: string;
+  sourceLayer?: string;
+  geometry: string;
+  properties: Record<string, unknown>;
+}
 
 interface AppState {
   styleId: StyleId;
   setStyleId: (id: StyleId) => void;
+
+  /** Användarens egna stilar (basstil + ändringar). Inbyggda stilar kan inte ändras. */
+  customStyles: CustomStyle[];
+  /** Vald egen stil; `styleId` är då dess basstil. null = inbyggd stil. */
+  activeCustomId: string | null;
+  /** Ökas när kartan måste ladda om stilen (t.ex. när en ändring tas bort). */
+  styleReloadTick: number;
+  selectCustomStyle: (id: string) => void;
+  /** Skapar en egen stil från aktuell stil (inkl. ändringar) och väljer den. */
+  createCustomStyle: (name: string) => void;
+  renameCustomStyle: (id: string, name: string) => void;
+  deleteCustomStyle: (id: string) => void;
+  setLayerProp: (layerId: string, kind: 'paint' | 'layout', prop: string, value: unknown) => void;
+  resetLayer: (layerId: string) => void;
+
+  inspectMode: boolean;
+  setInspectMode: (on: boolean) => void;
+  inspectHits: InspectHit[];
+  setInspectHits: (hits: InspectHit[]) => void;
+  selectedLayerId: string | null;
+  setSelectedLayerId: (id: string | null) => void;
   mapSource: MapSource;
   setMapSource: (source: MapSource) => void;
   labels: boolean;
@@ -105,12 +138,99 @@ export const useStore = create<AppState>()(
   persist(
     (set) => ({
       styleId: initialAtlas.styleId,
-      setStyleId: (id) => set((s) => ({ styleId: id, atlas: { ...s.atlas, styleId: id } })),
+      setStyleId: (id) =>
+        set((s) => ({
+          styleId: id,
+          activeCustomId: null,
+          selectedLayerId: null,
+          atlas: { ...s.atlas, styleId: id, styleOverrides: undefined },
+        })),
+
+      customStyles: [],
+      activeCustomId: null,
+      styleReloadTick: 0,
+      selectCustomStyle: (id) =>
+        set((s) => {
+          const custom = s.customStyles.find((c) => c.id === id);
+          if (!custom) return {};
+          return {
+            styleId: custom.baseStyleId,
+            activeCustomId: id,
+            selectedLayerId: null,
+            atlas: { ...s.atlas, styleId: custom.baseStyleId, styleOverrides: custom.overrides },
+          };
+        }),
+      createCustomStyle: (name) =>
+        set((s) => {
+          const trimmed = name.trim();
+          if (!trimmed) return {};
+          const overrides = s.atlas.styleOverrides ?? {};
+          const custom: CustomStyle = {
+            id: `custom-${crypto.randomUUID()}`,
+            name: trimmed,
+            baseStyleId: s.styleId,
+            overrides,
+          };
+          return {
+            customStyles: [...s.customStyles, custom],
+            activeCustomId: custom.id,
+            atlas: { ...s.atlas, styleOverrides: overrides },
+          };
+        }),
+      renameCustomStyle: (id, name) =>
+        set((s) => {
+          const trimmed = name.trim();
+          if (!trimmed) return {};
+          return { customStyles: s.customStyles.map((c) => (c.id === id ? { ...c, name: trimmed } : c)) };
+        }),
+      deleteCustomStyle: (id) =>
+        set((s) => {
+          const customStyles = s.customStyles.filter((c) => c.id !== id);
+          if (s.activeCustomId !== id) return { customStyles };
+          return {
+            customStyles,
+            activeCustomId: null,
+            selectedLayerId: null,
+            styleReloadTick: s.styleReloadTick + 1,
+            atlas: { ...s.atlas, styleOverrides: undefined },
+          };
+        }),
+      setLayerProp: (layerId, kind, prop, value) =>
+        set((s) => {
+          if (!s.activeCustomId) return {}; // inbyggda stilar är skrivskyddade
+          return updateActiveOverrides(s, (o) => ({
+            ...o,
+            [layerId]: { ...o[layerId], [kind]: { ...o[layerId]?.[kind], [prop]: value } },
+          }));
+        }),
+      resetLayer: (layerId) =>
+        set((s) => {
+          if (!s.activeCustomId) return {};
+          const next = updateActiveOverrides(s, (o) => {
+            const { [layerId]: _removed, ...rest } = o;
+            return rest;
+          });
+          return { ...next, styleReloadTick: s.styleReloadTick + 1 };
+        }),
+
+      inspectMode: false,
+      setInspectMode: (inspectMode) => set(inspectMode ? { inspectMode, drawMode: 'none', iconName: null } : { inspectMode }),
+      inspectHits: [],
+      setInspectHits: (inspectHits) => set({ inspectHits }),
+      selectedLayerId: null,
+      setSelectedLayerId: (selectedLayerId) => set({ selectedLayerId }),
       mapSource: initialAtlas.mapSource,
       setMapSource: (mapSource) =>
         set((s) => {
           const styleId = styleForSource(mapSource, s.styleId);
-          return { mapSource, styleId, atlas: { ...s.atlas, mapSource, styleId } };
+          // Egen stil hör till basstilens källa; byter basstil faller vi tillbaka på inbyggd.
+          const keep = styleId === s.styleId;
+          return {
+            mapSource,
+            styleId,
+            activeCustomId: keep ? s.activeCustomId : null,
+            atlas: { ...s.atlas, mapSource, styleId, styleOverrides: keep ? s.atlas.styleOverrides : undefined },
+          };
         }),
       labels: initialAtlas.labels,
       setLabels: (b) => set((s) => ({ labels: b, atlas: { ...s.atlas, labels: b } })),
@@ -255,7 +375,7 @@ export const useStore = create<AppState>()(
       clearPages: () => set((s) => ({ atlas: { ...s.atlas, pages: [] } })),
 
       drawMode: 'none',
-      setDrawMode: (m) => set({ drawMode: m }),
+      setDrawMode: (m) => set(m === 'none' ? { drawMode: m } : { drawMode: m, inspectMode: false }),
       iconName: null,
       setIconName: (n) => set({ iconName: n, drawMode: n ? 'icon' : 'none' }),
       iconSize: 'm',
@@ -273,13 +393,26 @@ export const useStore = create<AppState>()(
         drawMode: state.drawMode,
         iconName: state.iconName,
         mapView: state.mapView,
+        customStyles: state.customStyles,
+        activeCustomId: state.activeCustomId,
       }),
       merge: (persistedState, currentState) => {
         const persisted = persistedState as Partial<PersistedAppState>;
+        const customStyles = normalizeCustomStyles(persisted.customStyles);
+        const active = customStyles.find((c) => c.id === persisted.activeCustomId);
         const atlas = normalizeAtlas(persisted.atlas);
+        // Den aktiva egna stilen är sanningen för basstil och ändringar.
+        if (active) {
+          atlas.styleId = active.baseStyleId;
+          atlas.styleOverrides = active.overrides;
+        } else {
+          atlas.styleOverrides = undefined;
+        }
         return {
           ...currentState,
           ...syncAtlasState(atlas),
+          customStyles,
+          activeCustomId: active?.id ?? null,
           atlas,
           overlays: normalizeOverlays(persisted.overlays),
           drawMode: normalizeDrawMode(persisted.drawMode),
@@ -290,6 +423,27 @@ export const useStore = create<AppState>()(
     },
   ),
 );
+
+/** Skriver ändrade overrides till både den aktiva egna stilen och atlas (för PDF). */
+function updateActiveOverrides(s: AppState, fn: (o: StyleOverrides) => StyleOverrides) {
+  const current = s.customStyles.find((c) => c.id === s.activeCustomId);
+  if (!current) return {};
+  const overrides = fn(current.overrides);
+  return {
+    customStyles: s.customStyles.map((c) => (c.id === current.id ? { ...c, overrides } : c)),
+    atlas: { ...s.atlas, styleOverrides: overrides },
+  };
+}
+
+function normalizeCustomStyles(value: unknown): CustomStyle[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(
+      (c): c is CustomStyle =>
+        !!c && typeof c.id === 'string' && typeof c.name === 'string' && typeof c.baseStyleId === 'string',
+    )
+    .map((c) => ({ id: c.id, name: c.name, baseStyleId: c.baseStyleId, overrides: normalizeStyleOverrides(c.overrides) }));
+}
 
 function syncAtlasState(atlas: AtlasSpec) {
   return {
@@ -315,6 +469,7 @@ function normalizeAtlas(atlas: Partial<AtlasSpec> | undefined): AtlasSpec {
     ...atlas,
     mapSource,
     styleId: styleForSource(mapSource, atlas?.styleId ?? initialAtlas.styleId),
+    styleOverrides: atlas?.styleOverrides ? normalizeStyleOverrides(atlas.styleOverrides) : undefined,
     labelSize: normalizeLabelSize(atlas?.labelSize),
     roadSize: normalizeRoadSize(atlas?.roadSize),
     trackColor: normalizeTrackColor(atlas?.trackColor),

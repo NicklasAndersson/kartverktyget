@@ -187,3 +187,39 @@ describe('store setAtlas', () => {
     expect(s.mgrsGridSizeBias).toBe(-1);
   });
 });
+
+describe('custom styles', () => {
+  it('built-in styles are read-only; edits need a custom style', () => {
+    useStore.getState().setLayerProp('water', 'paint', 'fill-color', '#f00');
+    expect(useStore.getState().atlas.styleOverrides).toBeUndefined();
+  });
+
+  it('create, edit, mirror into atlas, rename and delete', () => {
+    const st = () => useStore.getState();
+    st().setStyleId('friluft');
+    st().createCustomStyle('Min karta');
+    const id = st().activeCustomId!;
+    expect(st().customStyles[0]).toMatchObject({ id, name: 'Min karta', baseStyleId: 'friluft' });
+
+    st().setLayerProp('water', 'paint', 'fill-color', '#f00');
+    expect(st().atlas.styleOverrides).toEqual({ water: { paint: { 'fill-color': '#f00' } } });
+    expect(st().customStyles[0]!.overrides).toEqual(st().atlas.styleOverrides);
+
+    st().renameCustomStyle(id, 'Ny');
+    expect(st().customStyles[0]!.name).toBe('Ny');
+
+    // Byte till inbyggd stil släpper ändringarna men behåller den sparade stilen.
+    st().setStyleId('minimal');
+    expect(st().atlas.styleOverrides).toBeUndefined();
+    st().selectCustomStyle(id);
+    expect(st().atlas.styleOverrides).toEqual({ water: { paint: { 'fill-color': '#f00' } } });
+
+    st().resetLayer('water');
+    expect(st().atlas.styleOverrides).toEqual({});
+
+    st().deleteCustomStyle(id);
+    expect(st().customStyles).toEqual([]);
+    expect(st().activeCustomId).toBeNull();
+    expect(st().atlas.styleOverrides).toBeUndefined();
+  });
+});
